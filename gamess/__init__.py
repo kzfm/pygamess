@@ -128,6 +128,7 @@ class Gamess(object):
     def gamess_input(self, mol):
         obc = ob.OBConversion()
         obc.SetOutFormat("gamin")
+        self.contrl['mult'] = mol.GetTotalSpinMultiplicity()
         gamin_tmp = obc.WriteString(mol)
         h = self.print_header()
         return gamin_tmp.replace(" $CONTRL COORD=CART UNITS=ANGS $END\n", h[:-1])
