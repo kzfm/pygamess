@@ -159,6 +159,10 @@ class Gamess(object):
     def run_type(self, runtype):
         self.contrl['runtyp'] = runtype
 
+    def scf_type(self, scftype):
+        self.contrl['scftyp'] = scftype
+
+
 if __name__ == '__main__':
 
     g = Gamess()
