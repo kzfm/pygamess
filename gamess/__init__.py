@@ -163,7 +163,7 @@ if __name__ == '__main__':
 
     g = Gamess()
    #g.basis_type('631gdp')
-    g.run_type('optimize')
+    #g.run_type('')
     obc = ob.OBConversion()
     obc.SetInFormat("mol")
 
@@ -176,5 +176,4 @@ if __name__ == '__main__':
         print gerr.value
 
     print newmol.GetEnergy()
-    print newmol.GetEnergies()
     print [(obatom.GetIdx(), obatom.GetType(), obatom.GetPartialCharge()) for obatom in ob.OBMolAtomIter(newmol)]
