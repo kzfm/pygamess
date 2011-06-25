@@ -7,9 +7,9 @@ Basic Usage
 
 import module and read molecule from file::
 
-    >>> import gamess
+    >>> import pygamess
     >>> import openbabel as ob
-    >>> g = gamess.Gamess()
+    >>> g = pygamess.Gamess()
     >>> obc = ob.OBConversion()
     >>> obc.SetInFormat("mol")
     True

@@ -1,11 +1,11 @@
 Metadata-Version: 1.0
-Name: gamess
-Version: 0.0dev
+Name: pygamess
+Version: 0.1dev
 Summary: GAMESS wrapper for Python
-Home-page: http://blog.kzfmix.com
+Home-page: https://github.com/kzfm/pygamess
 Author: Ohkawa Kazufumi
 Author-email: kerolinq@gmail.com
-License: UNKNOWN
+License: MIT
 Description: GAMESS wrapper for Python
 Keywords: chemistry
 Platform: UNKNOWN

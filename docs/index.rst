@@ -11,8 +11,8 @@ Welcome to pygamess's documentation!
 
 モジュールをインポートしてGamessオブジェクトを生成します::
 
-    >>> import gamess
-    >>> g = gamess.Gamess()
+    >>> import pygamess
+    >>> g = pygamess.Gamess()
 
 openbabelモジュールを使って分子を読み込みます::
 

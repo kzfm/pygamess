@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 import sys, os
 
-version = '0.0'
+version = '0.1'
 
-setup(name='gamess',
+setup(name='pygamess',
       version=version,
       description="GAMESS wrapper for Python",
       long_description="""\
@@ -12,9 +12,9 @@ GAMESS wrapper for Python""",
       keywords='chemistry',
       author='Ohkawa Kazufumi',
       author_email='kerolinq@gmail.com',
-      url='http://blog.kzfmix.com',
-      license='',
-      packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
+      url='https://github.com/kzfm/pygamess',
+      license='MIT',
+      packages=find_packages(exclude=['ez_setup', 'examples', 'tests', 'docs']),
       include_package_data=True,
       zip_safe=False,
       install_requires=[

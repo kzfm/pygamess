@@ -1,0 +1,9 @@
+setup.cfg
+setup.py
+pygamess/__init__.py
+pygamess.egg-info/PKG-INFO
+pygamess.egg-info/SOURCES.txt
+pygamess.egg-info/dependency_links.txt
+pygamess.egg-info/entry_points.txt
+pygamess.egg-info/not-zip-safe
+pygamess.egg-info/top_level.txt
