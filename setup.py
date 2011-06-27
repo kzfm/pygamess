@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import sys, os
 
-version = '0.1'
+version = '0.1.1'
 
 setup(name='pygamess',
       version=version,
@@ -13,6 +13,7 @@ Requirements
 ------------
 * Python 2.6 or later (not support 3.x)
 * openbabel 2.3 
+* GAMESS (and rungms script)
 
 Features
 --------
@@ -24,8 +25,40 @@ Setup
 
    $ easy_install pygamess
 
+Basic Usage
+-----------
+
+import module and read molecule from file::
+
+    >>> import pygamess
+    >>> import openbabel as ob
+    >>> g = pygamess.Gamess()
+    >>> obc = ob.OBConversion()
+    >>> obc.SetInFormat("mol")
+    True
+    >>> mol = ob.OBMol()
+    >>> obc.ReadFile(mol, "examples/ethane.mol")
+    True
+
+run GAMESS::
+
+    >>> try:
+    ...     newmol = g.run(mol)
+    ... except GamessError, gerr:
+    ...     print gerr.value
+    ... 
+
+get energy::
+
+    >>> newmol.GetEnergy()
+    -78.305307479999996
+
 History
 -------
+0.1.1 (2011-6-XX)
+~~~~~~~~~~~~~~~~~~
+* updated document
+
 0.1 (2011-6-25)
 ~~~~~~~~~~~~~~~~~~
 * first release

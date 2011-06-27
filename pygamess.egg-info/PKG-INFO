@@ -6,7 +6,30 @@ Home-page: https://github.com/kzfm/pygamess
 Author: Ohkawa Kazufumi
 Author-email: kerolinq@gmail.com
 License: MIT
-Description: GAMESS wrapper for Python
+Description: `pygamess` is a GAMESS wrapper for Python
+        
+        Requirements
+        ------------
+        * Python 2.6 or later (not support 3.x)
+        * openbabel 2.3 
+        
+        Features
+        --------
+        * nothing
+        
+        Setup
+        -----
+        ::
+        
+           $ easy_install pygamess
+        
+        History
+        -------
+        0.1 (2011-6-25)
+        ~~~~~~~~~~~~~~~~~~
+        * first release
+        
+        
 Keywords: chemistry
 Platform: UNKNOWN
 Classifier: License :: OSI Approved :: MIT License
