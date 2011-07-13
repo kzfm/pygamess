@@ -153,6 +153,12 @@ class Gamess(object):
             self.basis = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1'}
         elif basis_type in["631+gdp", "6-31G+(d,p)"]:
             self.basis = {'gbasis': 'n31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1', 'diffsp': '.true', }
+        elif basis_type in["am1", "AM1"]:
+            self.basis = {'gbasis': 'am1'}
+        elif basis_type in["pm3", "PM3"]:
+            self.basis = {'gbasis': 'pm3'}
+        elif basis_type in["mndo", "MNDO"]:
+            self.basis = {'gbasis': 'mndo'} 
         else:
             print "basis type not found"
         return self.basis
