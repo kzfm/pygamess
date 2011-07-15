@@ -8,8 +8,6 @@ import re
 import string
 from random import choice
 
-DEBUG = environ.get('debug', False)
-
 
 def randstr(n):
     """make a random string"""
@@ -29,7 +27,9 @@ class Gamess(object):
 
     def __init__(self, gamess_path=None):
         self.tempdir = mkdtemp()
-        if DEBUG:
+        self.debug = environ.get('debug', False)
+
+        if self.debug:
             print self.tempdir
         if gamess_path == None:
             try:
@@ -82,7 +82,7 @@ class Gamess(object):
         new_mol.SetEnergy(total_energy)
 
         chdir(self.cwd)
-        if not DEBUG:
+        if not self.debug:
             unlink(gamin)
             unlink(gamout)
 
@@ -141,7 +141,7 @@ class Gamess(object):
         return gamess_input_file
 
     def __del__(self):
-        if not DEBUG:
+        if not self.debug:
             removedirs(self.tempdir)
 
     def basis_type(self, basis_type):
@@ -179,7 +179,7 @@ if __name__ == '__main__':
     obc.SetInFormat("mol")
 
     mol = ob.OBMol()
-    next = obc.ReadFile(mol, "examples/ethane.mol")
+    next = obc.ReadFile(mol, "examples/CID_674.sdf")
     print g.gamess_input(mol)
     try:
         newmol = g.run(mol)
