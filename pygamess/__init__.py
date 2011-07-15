@@ -52,6 +52,8 @@ class Gamess(object):
 
         err_re = re.compile('^ \*\*\*')
         eng_re = re.compile('^                       TOTAL ENERGY =')
+        if self.basis['gbasis'] in ['am1', 'pm3', 'mndo']:
+            eng_re = re.compile(' FINAL .+ ENERGY IS')
 
         gamin = self.write_file(mol)
         gamout = self.tempdir + "/" + self.jobname + ".out"
@@ -66,7 +68,10 @@ class Gamess(object):
             err_flag = False
             for l in f:
                 if eng_re.match(l):
-                    total_energy = float(l.split('=')[1])
+                    if self.basis['gbasis'] in ['am1', 'pm3', 'mndo']:
+                        total_energy = float(l.split()[4])
+                    else:
+                        total_energy = float(l.split('=')[1])
                 if err_re.match(l):
                     err_flag = True
                 if err_flag == True:
