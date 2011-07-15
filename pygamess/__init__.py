@@ -28,6 +28,7 @@ class Gamess(object):
     def __init__(self, gamess_path=None):
         self.tempdir = mkdtemp()
         self.debug = environ.get('debug', False)
+        self.err_lines = 10
 
         if self.debug:
             print self.tempdir
@@ -73,9 +74,10 @@ class Gamess(object):
                     else:
                         total_energy = float(l.split('=')[1])
                 if err_re.match(l):
-                    err_flag = True
-                if err_flag == True:
+                    err_count = self.err_lines
+                if err_count > 0:
                     err_message += l
+                    err_count -= 1
 
         # エラーが出たのでstringを渡したらなおった
         # TypeError: in method 'OBConversion_ReadFile', argument 3 of type 'std::string'
@@ -163,7 +165,7 @@ class Gamess(object):
         elif basis_type in["pm3", "PM3"]:
             self.basis = {'gbasis': 'pm3'}
         elif basis_type in["mndo", "MNDO"]:
-            self.basis = {'gbasis': 'mndo'} 
+            self.basis = {'gbasis': 'mndo'}
         else:
             print "basis type not found"
         return self.basis
