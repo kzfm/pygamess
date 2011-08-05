@@ -66,7 +66,7 @@ class Gamess(object):
         total_energy = 0
 
         with open(gamout, "r") as f:
-            err_flag = False
+            err_count = 0
             for l in f:
                 if eng_re.match(l):
                     if self.basis['gbasis'] in ['am1', 'pm3', 'mndo']:
