@@ -45,6 +45,8 @@ class Gamess(object):
         self.cwd = getcwd()
         self.contrl = {'scftyp': 'rhf', 'runtyp': 'energy'}
         self.basis = {'gbasis': 'sto', 'ngauss': '3'}
+        self.statpt = {'opttol': '0.0001', 'nstep': '20', }
+
 
     def run(self, mol):
         self.jobname = randstr(6)
@@ -128,8 +130,10 @@ class Gamess(object):
         return system_section
 
     def print_statpt_section(self):
-        statpt_section = ""
-        statpt_section = " $STATPT OPTTOL=0.0001 NSTEP=20 $END\n"
+        control_section = " $statpt "
+        for k, v in self.statpt.iteritems():
+            statpt_section += "%s=%s " % (k, v)
+        statpt_section += " $end\n"
         return statpt_section
 
     def gamess_input(self, mol):
