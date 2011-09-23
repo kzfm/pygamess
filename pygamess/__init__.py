@@ -46,6 +46,8 @@ class Gamess(object):
         self.contrl = {'scftyp': 'rhf', 'runtyp': 'energy'}
         self.basis = {'gbasis': 'sto', 'ngauss': '3'}
         self.statpt = {'opttol': '0.0001', 'nstep': '20', }
+        self.system = {'mwords': '30'}
+        self.cis = {'nstate': '1'}
 
 
     def run(self, mol):
@@ -107,6 +109,10 @@ class Gamess(object):
         header += self.print_control_section()
         header += self.print_basis_section()
         header += self.print_system_section()
+        if self.contrl['runtyp'] == 'optimize':
+            header += self.print_statpt_section()
+        if self.contrl.get('citype', None) == 'cis':
+            header += self.print_cis_section()
 
         return header
 
@@ -125,16 +131,25 @@ class Gamess(object):
         return basis_section
 
     def print_system_section(self):
-        system_section = ""
-        system_section = " $SYSTEM MWORDS=30 $END\n"
+        system_section = " $system "
+        for k, v in self.system.iteritems():
+            system_section += "%s=%s " % (k, v)
+        system_section += " $end\n"
         return system_section
 
     def print_statpt_section(self):
-        control_section = " $statpt "
+        statpt_section = " $statpt "
         for k, v in self.statpt.iteritems():
             statpt_section += "%s=%s " % (k, v)
         statpt_section += " $end\n"
         return statpt_section
+
+    def print_cis_section(self):
+        cis_section = " $cis "
+        for k, v in self.cis.iteritems():
+            cis_section += "%s=%s " % (k, v)
+        cis_section += " $end\n"
+        return cis_section
 
     def gamess_input(self, mol):
         obc = ob.OBConversion()
@@ -162,8 +177,8 @@ class Gamess(object):
             self.basis = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1'}
         elif basis_type in ["631gdp", "6-31G(d,p)"]:
             self.basis = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1'}
-        elif basis_type in["631+gdp", "6-31G+(d,p)"]:
-            self.basis = {'gbasis': 'n31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1', 'diffsp': '.true', }
+        elif basis_type in ["631+gdp", "6-31G+(d,p)"]:
+            self.basis = {'gbasis': 'n31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1', 'diffsp': '.t.', }
         elif basis_type in["am1", "AM1"]:
             self.basis = {'gbasis': 'am1'}
         elif basis_type in["pm3", "PM3"]:

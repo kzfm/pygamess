@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import sys, os
 
-version = '0.1.1'
+version = '0.1.2'
 
 setup(name='pygamess',
       version=version,
@@ -55,9 +55,17 @@ get energy::
 
 History
 -------
-0.1.1 (2011-6-XX)
+
+0.1.2 (2011-9-23)
+~~~~~~~~~~~~~~~~~~
+* added CIS method (and optimization)
+
+0.1.1 (2011-8-6)
 ~~~~~~~~~~~~~~~~~~
 * updated document
+* semiempical method (AM1, PM3, MNDO)
+* added statpt option
+* changed default error print (10 lines)
 
 0.1 (2011-6-25)
 ~~~~~~~~~~~~~~~~~~

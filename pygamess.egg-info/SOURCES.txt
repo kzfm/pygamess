@@ -1,5 +1,8 @@
+MANIFEST.in
 setup.cfg
 setup.py
+examples/CID_674.sdf
+examples/ethane.mol
 pygamess/__init__.py
 pygamess.egg-info/PKG-INFO
 pygamess.egg-info/SOURCES.txt
