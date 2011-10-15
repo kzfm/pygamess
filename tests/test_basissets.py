@@ -11,4 +11,5 @@ def test_ethane_sto3g():
     obc.ReadFile(mol, "../examples/ethane.mol")
     g = pygamess.Gamess()
     newmol = g.run(mol)
+    print newmol.GetEnergy()
     assert newmol.GetEnergy() == -78.305307479999996
