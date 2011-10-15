@@ -11,7 +11,7 @@ def test_ob_ok():
     obc.SetInFormat("mol")
     mol = ob.OBMol()
     r = obc.ReadFile(mol, "examples/ethane.mol")
-    assert r == 1
+    eq_(r,1)
 
 def test_gamess_input():
     obc = ob.OBConversion()
