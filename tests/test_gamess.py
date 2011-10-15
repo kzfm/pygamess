@@ -6,6 +6,13 @@ def test_gamess_ok():
     g = pygamess.Gamess(gamess_path="/usr/local/bin/rungms")
     assert g.gamess != None
 
+def test_ob_ok():
+    obc = ob.OBConversion()
+    obc.SetInFormat("mol")
+    mol = ob.OBMol()
+    r = obc.ReadFile(mol, "examples/ethane.mol")
+    assert r == 1
+
 def test_gamess_input():
     obc = ob.OBConversion()
     obc.SetInFormat("mol")
