@@ -10,6 +10,8 @@ def test_ethane_sto3g():
     mol = ob.OBMol()
     obc.ReadFile(mol, "../examples/ethane.mol")
     g = pygamess.Gamess(gamess_path="/usr/local/bin/gamess")
-    newmol = g.run(mol)
-    print newmol.GetEnergy()
+    try:
+        newmol = g.run(mol)
+    except GamessError, gerr:
+        print gerr.value
     assert newmol.GetEnergy() == -78.305307479999996
