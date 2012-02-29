@@ -100,3 +100,10 @@ H      1.0      1.1404000000   -0.6586000000   -0.7845000000
             def should_be_changed_a_scf(self, topic):
                 topic.scf_type('UHF')
                 expect(topic.contrl['scftyp']).to_be_like('UHF')
+
+        class AfterRunning(Vows.Context):
+            def topic(self, gam):
+                return gam.run(mol)
+            def should_be_new_mol(self, topic):
+                expect(topic.GetEnergy()).to_be_like(-78.30530748)
+
