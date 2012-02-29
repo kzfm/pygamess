@@ -48,12 +48,11 @@ class Gamess(object):
         self.statpt = {'opttol': '0.0001', 'nstep': '20', }
         self.system = {'mwords': '30'}
         self.cis = {'nstate': '1'}
-
+        self.obc = ob.OBConversion()
+        self.obc.SetInAndOutFormats("gamout", "gamin")
 
     def run(self, mol):
         self.jobname = randstr(6)
-        obc = ob.OBConversion()
-        obc.SetInFormat("gamout")
 
         err_re = re.compile('^ \*\*\*')
         eng_re = re.compile('^                       TOTAL ENERGY =')
@@ -87,7 +86,7 @@ class Gamess(object):
         # TypeError: in method 'OBConversion_ReadFile', argument 3 of type 'std::string'
         new_mol = ob.OBMol()
         s = open(gamout).read()
-        obc.ReadString(new_mol, s)
+        self.obc.ReadString(new_mol, s)
 
         # singlepoint だと数値が入んないので対応
         new_mol.SetEnergy(total_energy)
@@ -152,10 +151,8 @@ class Gamess(object):
         return cis_section
 
     def gamess_input(self, mol):
-        obc = ob.OBConversion()
-        obc.SetOutFormat("gamin")
         self.contrl['mult'] = mol.GetTotalSpinMultiplicity()
-        gamin_tmp = obc.WriteString(mol)
+        gamin_tmp = self.obc.WriteString(mol)
         h = self.print_header()
         return gamin_tmp.replace(" $CONTRL COORD=CART UNITS=ANGS $END\n", h[:-1])
 
