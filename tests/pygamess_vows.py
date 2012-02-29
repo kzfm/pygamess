@@ -41,26 +41,20 @@ class PyGamess(Vows.Context):
         def should_have_a_cis(self, topic):
             expect(isinstance(topic.cis, dict)).to_be_true()
 
-        def can_print_contrl(self, topic):
-            expect(topic.print_control_section).to_be_a_function()
+        def can_print_section(self, topic):
+            expect(topic.print_section).to_be_a_function()
         def print_contrl_should_return_a_text(self, topic):
-            expect(topic.print_control_section()).to_be_like(' $contrl runtyp=energy scftyp=rhf  $end\n')
-        def can_print_basis(self, topic):
-            expect(topic.print_basis_section).to_be_a_function()
+            expect(topic.print_section('contrl')).to_be_like(' $contrl runtyp=energy scftyp=rhf  $end\n')
         def print_basis_should_return_a_text(self, topic):
-            expect(topic.print_basis_section()).to_be_like(' $basis gbasis=sto ngauss=3 $end\n')
-        def can_print_system(self, topic):
-            expect(topic.print_system_section).to_be_a_function()
+            expect(topic.print_section('basis')).to_be_like(' $basis gbasis=sto ngauss=3 $end\n')
         def print_system_should_return_a_text(self, topic):
-            expect(topic.print_system_section()).to_be_like(' $system mwords=30  $end\n')
-        def can_print_statpt(self, topic):
-            expect(topic.print_statpt_section).to_be_a_function()
+            expect(topic.print_section('system')).to_be_like(' $system mwords=30  $end\n')
         def print_statpt_should_return_a_text(self, topic):
-            expect(topic.print_statpt_section()).to_be_like(' $statpt opttol=0.0001 nstep=20  $end\n')
-        def can_print_cis(self, topic):
-            expect(topic.print_cis_section).to_be_a_function()
+            expect(topic.print_section('statpt')).to_be_like(' $statpt opttol=0.0001 nstep=20  $end\n')
         def print_cis_should_return_a_text(self, topic):
-            expect(topic.print_cis_section()).to_be_like(' $cis nstate=1  $end\n')
+            expect(topic.print_section('cis')).to_be_like(' $cis nstate=1  $end\n')
+        def print_header_should_return_a_text(self, topic):
+            expect(topic.print_header()).to_be_like(' $contrl runtyp=energy scftyp=rhf mult=1  $end\n $basis gbasis=sto ngauss=3  $end\n $system mwords=30  $end\n')
 
         def can_print_gamin(self, topic):
             expect(topic.gamess_input).to_be_a_function()

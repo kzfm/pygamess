@@ -105,14 +105,13 @@ class Gamess(object):
         """ gamess header"""
 
         header = ""
-        header += self.print_control_section()
-        header += self.print_basis_section()
-        header += self.print_system_section()
+        header += self.print_section('contrl')
+        header += self.print_section('basis')
+        header += self.print_section('system')
         if self.contrl['runtyp'] == 'optimize':
-            header += self.print_statpt_section()
+            header += self.print_section('statpt')
         if self.contrl.get('citype', None) == 'cis':
-            header += self.print_cis_section()
-
+            header += self.print_section('cis')
         return header
 
     def print_section(self, pref):
@@ -122,21 +121,6 @@ class Gamess(object):
             section += "%s=%s " % (k, v)
         section += " $end\n"
         return section
-
-    def print_control_section(self):
-        return self.print_section('contrl')
-
-    def print_basis_section(self):
-        return self.print_section('basis')
-
-    def print_system_section(self):
-        return self.print_section('system')
-
-    def print_statpt_section(self):
-        return self.print_section('statpt')
-
-    def print_cis_section(self):
-        return self.print_section('cis')
 
     def gamess_input(self, mol):
         self.contrl['mult'] = mol.GetTotalSpinMultiplicity()
