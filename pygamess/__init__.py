@@ -115,40 +115,28 @@ class Gamess(object):
 
         return header
 
+    def print_section(self, pref):
+        d = getattr(self, pref)
+        section = " $%s " % pref
+        for k, v in d.iteritems():
+            section += "%s=%s " % (k, v)
+        section += " $end\n"
+        return section
+
     def print_control_section(self):
-        control_section = " $contrl "
-        for k, v in self.contrl.iteritems():
-            control_section += "%s=%s " % (k, v)
-        control_section += " $end\n"
-        return control_section
+        return self.print_section('contrl')
 
     def print_basis_section(self):
-        basis_section = " $basis "
-        for k, v in self.basis.iteritems():
-            basis_section += "%s=%s " % (k, v)
-        basis_section += "$end\n"
-        return basis_section
+        return self.print_section('basis')
 
     def print_system_section(self):
-        system_section = " $system "
-        for k, v in self.system.iteritems():
-            system_section += "%s=%s " % (k, v)
-        system_section += " $end\n"
-        return system_section
+        return self.print_section('system')
 
     def print_statpt_section(self):
-        statpt_section = " $statpt "
-        for k, v in self.statpt.iteritems():
-            statpt_section += "%s=%s " % (k, v)
-        statpt_section += " $end\n"
-        return statpt_section
+        return self.print_section('statpt')
 
     def print_cis_section(self):
-        cis_section = " $cis "
-        for k, v in self.cis.iteritems():
-            cis_section += "%s=%s " % (k, v)
-        cis_section += " $end\n"
-        return cis_section
+        return self.print_section('cis')
 
     def gamess_input(self, mol):
         self.contrl['mult'] = mol.GetTotalSpinMultiplicity()
