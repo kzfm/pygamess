@@ -6,11 +6,17 @@ os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from pyvows import Vows, expect
 from pygamess import Gamess
 import openbabel as ob
+import pybel
+
+# openbabel
 obc = ob.OBConversion()
 obc.SetInFormat("mol")
 mol = ob.OBMol()
 obc.ReadFile(mol, "examples/ethane.mol")
- 
+
+# pybel
+pybel_mol = pybel.readfile('mol','examples/ethane.mol').next()
+
 @Vows.batch
 class PyGamess(Vows.Context):
     class Gamess(Vows.Context):
@@ -100,4 +106,10 @@ H      1.0      1.1404000000   -0.6586000000   -0.7845000000
                 return gam.run(mol)
             def should_be_new_mol(self, topic):
                 expect(topic.GetEnergy()).to_be_like(-78.30530748)
+
+        class AfterRunningWithPybel(Vows.Context):
+            def topic(self, gam):
+                return gam.run(pybel_mol)
+            def should_be_new_mol(self, topic):
+                expect(topic.energy).to_be_like(-78.30530748)
 

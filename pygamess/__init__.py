@@ -2,6 +2,7 @@
 # -*- encoding:utf-8 -*-
 
 import openbabel as ob
+import pybel
 from tempfile import mkstemp, mkdtemp
 from os import removedirs, unlink, system, environ, path, getcwd, chdir, system
 import re
@@ -30,8 +31,7 @@ class Gamess(object):
         self.debug = environ.get('debug', False)
         self.err_lines = 10
 
-        if self.debug:
-            print self.tempdir
+        if self.debug: print self.tempdir
         if gamess_path == None:
             try:
                 gamess_path = filter(lambda f: path.isfile(f),
@@ -52,6 +52,11 @@ class Gamess(object):
         self.obc.SetInAndOutFormats("gamout", "gamin")
 
     def run(self, mol):
+        is_pybel = False
+        if isinstance(mol,pybel.Molecule):
+            mol = mol.OBMol
+            is_pybel = True
+
         self.jobname = randstr(6)
 
         err_re = re.compile('^ \*\*\*')
@@ -99,6 +104,8 @@ class Gamess(object):
         if len(err_message) > 0:
             raise GamessError(err_message)
         else:
+            if is_pybel:
+                new_mol = pybel.Molecule(new_mol)
             return new_mol
 
     def print_header(self):
