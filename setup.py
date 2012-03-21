@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import sys, os
 
-version = '0.1.2'
+version = '0.2.0'
 
 setup(name='pygamess',
       version=version,
@@ -56,11 +56,15 @@ get energy::
 History
 -------
 
-0.1.2 (2011-9-23)
+0.2.0 (2012-03-06)
+~~~~~~~~~~~~~~~~~~
+* run method can accept OBMol and Pybel-Molecule object
+
+0.1.2 (2011-09-23)
 ~~~~~~~~~~~~~~~~~~
 * added CIS method (and optimization)
 
-0.1.1 (2011-8-6)
+0.1.1 (2011-08-06)
 ~~~~~~~~~~~~~~~~~~
 * updated document
 * semiempical method (AM1, PM3, MNDO)
