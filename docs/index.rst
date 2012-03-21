@@ -9,13 +9,23 @@ Welcome to pygamess's documentation!
 基本的な使いかた
 ---------------------------------------
 
-モジュールをインポートしてGamessオブジェクトを生成します::
+pybelを使って一点計算をする
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    >>> from pygamess import Gamess
+    >>> import pybel
+    >>> g = Gamess()
+    >>> mol = pybel.readstring('smi','C=C')
+    >>> mol.make3D()
+    >>> optimized_mol = g.run(mol)
+    >>> optimized_mol.energy
+    -77.0722784993
+
+openbabelを使って一点計算をする
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     >>> import pygamess
     >>> g = pygamess.Gamess()
-
-openbabelモジュールを使って分子を読み込みます::
-
     >>> import openbabel as ob
     >>> obc = ob.OBConversion()
     >>> obc.SetInFormat("mol")
@@ -23,18 +33,11 @@ openbabelモジュールを使って分子を読み込みます::
     >>> mol = ob.OBMol()
     >>> obc.ReadFile(mol, "examples/ethane.mol")
     True
-
-gamessの実行にはrunメソッドを使ってOBMolオブジェクトを渡します。Gamess
-実行時にエラー終了した場合にはGamessError例外が投げられます::
-
     >>> try:
     ...     newmol = g.run(mol)
     ... except GamessError, gerr:
     ...     print gerr.value
     ... 
-
-エネルギーはGetEnergyメソッドで取得できます::
-
     >>> newmol.GetEnergy()
     -78.305307479999996
 
@@ -52,10 +55,20 @@ gamessの実行にはrunメソッドを使ってOBMolオブジェクトを渡し
     (7, 'HC', 0.056554)
     (8, 'HC', 0.056557999999999997)
 
-構造最適化計算を行う場合
----------------------------------------------------
+pybelで構造最適化計算を行う
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Gamessオブジェクトのrun_typeで指定します::
+
+    >>> from pygamess import Gamess
+    >>> import pybel
+    >>> g = Gamess()
+    >>> g.run_type('optimize')
+    >>> mol = pybel.readstring('smi','C')
+    >>> mol.make3D()
+    >>> optimized_mol = g.run(mol)
+    >>> optimized_mol.energy
+    -37.0895866208
 
     >>> g.run_type('optimize')
     >>> optimized_mol = g.run(mol)
@@ -67,6 +80,7 @@ GetEnergiesメソッドで最適化の各構造のエネルギーを取得する
 
     >>> optimized_mol.GetEnergies()
     (-78.305307499999998, -78.306143500000005, -78.306164999999993, -78.306179400000005, -78.306179599999993)
+
 
 基底関数を変更したい場合
 --------------------------------------------------
