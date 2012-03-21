@@ -60,12 +60,15 @@ class PyGamess(Vows.Context):
         def print_cis_should_return_a_text(self, topic):
             expect(topic.print_section('cis')).to_be_like(' $cis nstate=1  $end\n')
         def print_header_should_return_a_text(self, topic):
-            expect(topic.print_header()).to_be_like(' $contrl runtyp=energy scftyp=rhf mult=1  $end\n $basis gbasis=sto ngauss=3  $end\n $system mwords=30  $end\n')
+            expect(topic.print_header()).to_be_like(' $contrl runtyp=energy scftyp=rhf $end\n $basis gbasis=sto ngauss=3  $end\n $system mwords=30  $end\n')
 
-        def can_print_gamin(self, topic):
-            expect(topic.gamess_input).to_be_a_function()
-        def print_gamin_should_return_a_input(self, topic):
-            expect(topic.gamess_input(mol)).to_be_like(""" $contrl runtyp=energy scftyp=rhf mult=1  $end
+        class WhenGivenAObmol(Vows.Context):
+            def topic(self):
+                return Gamess()
+            def can_print_gamin(self, topic):
+                expect(topic.gamess_input).to_be_a_function()
+            def can_convert_obmol_to_gamin(self, topic):
+                    expect(topic.gamess_input(mol)).to_be_like(""" $contrl runtyp=energy scftyp=rhf mult=1  $end
  $basis gbasis=sto ngauss=3 $end
  $system mwords=30  $end
  $DATA
@@ -80,36 +83,56 @@ H      1.0      1.1404000000   -0.3501000000    0.9626000000
 H      1.0      1.1405000000    1.0087000000   -0.1781000000 
 H      1.0      1.1404000000   -0.6586000000   -0.7845000000 
  $END\n\n\n""")
+        class WhenGivenAPybelmol(Vows.Context):
+            def topic(self):
+                return Gamess()
+            def can_convert_pybel_to_gamin(self, topic):
+                expect(topic.gamess_input(pybel_mol)).to_be_like(""" $contrl runtyp=energy scftyp=rhf mult=1  $end
+ $basis gbasis=sto ngauss=3 $end
+ $system mwords=30  $end
+ $DATA
+6324
+C1
+C      6.0     -0.7560000000    0.0000000000    0.0000000000 
+C      6.0      0.7560000000    0.0000000000    0.0000000000 
+H      1.0     -1.1404000000    0.6586000000    0.7845000000 
+H      1.0     -1.1404000000    0.3501000000   -0.9626000000 
+H      1.0     -1.1405000000   -1.0087000000    0.1781000000 
+H      1.0      1.1404000000   -0.3501000000    0.9626000000 
+H      1.0      1.1405000000    1.0087000000   -0.1781000000 
+H      1.0      1.1404000000   -0.6586000000   -0.7845000000 
+ $END\n\n\n""")
+
         class WhenChangedABasis(Vows.Context):
-            def topic(self, gam):
-                return gam
+            def topic(self):
+                return Gamess()
             def should_be_changed_a_basis(self, topic):
                 topic.basis_type('am1')
                 expect(topic.basis).to_be_like({'gbasis':'am1'})
 
         class WhenChangedARunType(Vows.Context):
-            def topic(self, gam):
-                return gam
+            def topic(self):
+                return Gamess()
             def should_be_changed_a_runtyp(self, topic):
                 topic.run_type('optimize')
                 expect(topic.contrl['runtyp']).to_be_like('optimize')
 
         class WhenChangedAScf(Vows.Context):
-            def topic(self, gam):
-                return gam
+            def topic(self):
+                return Gamess()
             def should_be_changed_a_scf(self, topic):
                 topic.scf_type('UHF')
                 expect(topic.contrl['scftyp']).to_be_like('UHF')
 
         class AfterRunning(Vows.Context):
-            def topic(self, gam):
-                return gam.run(mol)
+            def topic(self):
+                return Gamess().run(mol)
             def should_be_new_mol(self, topic):
                 expect(topic.GetEnergy()).to_be_like(-78.30530748)
 
         class AfterRunningWithPybel(Vows.Context):
-            def topic(self, gam):
-                return gam.run(pybel_mol)
+            def topic(self):
+                return Gamess().run(pybel_mol)
             def should_be_new_mol(self, topic):
                 expect(topic.energy).to_be_like(-78.30530748)
 
