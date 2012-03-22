@@ -5,6 +5,7 @@ import openbabel as ob
 import pybel
 from tempfile import mkdtemp
 from os import removedirs, unlink, system, environ, path, getcwd, chdir, system
+from shutil import rmtree
 import re
 import string
 from random import choice
@@ -146,7 +147,7 @@ class Gamess(object):
 
     def __del__(self):
         if not self.debug:
-            removedirs(self.tempdir)
+            rmtree(self.tempdir)
 
     def basis_type(self, basis_type):
         if basis_type in ["sto3g", "STO-3G"]:

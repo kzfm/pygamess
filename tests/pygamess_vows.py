@@ -27,7 +27,6 @@ class PyGamess(Vows.Context):
             expect(topic).to_be_instance_of(Gamess)
 
         def should_have_a_tempdir(self, topic):
-            #expect(topic.tempdir).to_be_str()
             expect(isinstance(topic.tempdir, str)).to_be_true()
 
         def should_have_a_debug_flag(self, topic):
@@ -61,6 +60,15 @@ class PyGamess(Vows.Context):
             expect(topic.print_section('cis')).to_be_like(' $cis nstate=1  $end\n')
         def print_header_should_return_a_text(self, topic):
             expect(topic.print_header()).to_be_like(' $contrl runtyp=energy scftyp=rhf $end\n $basis gbasis=sto ngauss=3  $end\n $system mwords=30  $end\n')
+
+        class WhenRemoveGamess(Vows.Context):
+            def topic(self):
+                g = Gamess()
+                tmpdir = g.tempdir
+                del(g)
+                return tmpdir
+            def can_remove_tempdir(self, topic):
+                expect(os.path.isdir(topic)).to_be_false()
 
         class WhenGivenAObmol(Vows.Context):
             def topic(self):
