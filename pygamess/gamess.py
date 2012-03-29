@@ -134,6 +134,7 @@ class Gamess(object):
         if isinstance(mol,pybel.Molecule):
             mol = mol.OBMol
         self.contrl['mult'] = mol.GetTotalSpinMultiplicity()
+        self.contrl['icharg'] = mol.GetTotalCharge()
         gamin_tmp = self.obc.WriteString(mol)
         h = self.print_header()
         return gamin_tmp.replace(" $CONTRL COORD=CART UNITS=ANGS $END\n", h[:-1])
