@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import sys, os
 
-version = '0.2.1'
+version = '0.2.2'
 
 setup(name='pygamess',
       version=version,
@@ -112,10 +112,19 @@ or edit property of Gamess instance::
 print GAMESS INPUT
 ~~~~~~~~~~~~~~~~~~
 
-use gamess_input method
+use input method
+
+    >>> g.input(mol)
+
 
 History
 -------
+
+
+0.2.2 (2012-03-30)
+~~~~~~~~~~~~~~~~~~
+* added charge settings
+* method name changed (gamess_input -> input)
 
 0.2.1 (2012-03-23)
 ~~~~~~~~~~~~~~~~~~

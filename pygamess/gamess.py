@@ -130,7 +130,7 @@ class Gamess(object):
         section += " $end\n"
         return section
 
-    def gamess_input(self, mol):
+    def input(self, mol):
         if isinstance(mol,pybel.Molecule):
             mol = mol.OBMol
         self.contrl['mult'] = mol.GetTotalSpinMultiplicity()
@@ -140,7 +140,7 @@ class Gamess(object):
         return gamin_tmp.replace(" $CONTRL COORD=CART UNITS=ANGS $END\n", h[:-1])
 
     def write_file(self, mol):
-        gamess_input_str = self.gamess_input(mol)
+        gamess_input_str = self.input(mol)
         gamess_input_file = self.tempdir + "/" + self.jobname + ".inp"
         with open(gamess_input_file, "w") as f:
             f.write(gamess_input_str)
@@ -186,7 +186,7 @@ if __name__ == '__main__':
 
     mol = ob.OBMol()
     next = obc.ReadFile(mol, "examples/CID_674.sdf")
-    print g.gamess_input(mol)
+    print g.input(mol)
     try:
         newmol = g.run(mol)
     except GamessError, gerr:
