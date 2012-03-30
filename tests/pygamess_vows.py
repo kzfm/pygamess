@@ -183,6 +183,8 @@ H      1.0      1.1404000000   -0.6586000000   -0.7845000000
                 return Gamess().run(mol)
             def should_be_new_mol(self, topic):
                 expect(topic.GetEnergy()).to_be_like(-78.30530748)
+            def should_have_a_same_spin_multiplicity(self, topic):
+                expect(topic.GetTotalSpinMultiplicity()).to_be_like(mol.GetTotalSpinMultiplicity())
 
 
         class AfterRunningWithPybel(Vows.Context):
@@ -190,4 +192,6 @@ H      1.0      1.1404000000   -0.6586000000   -0.7845000000
                 return Gamess().run(pybel_mol)
             def should_be_new_mol(self, topic):
                 expect(topic.energy).to_be_like(-78.30530748)
+            def should_have_a_same_spin_multiplicity(self, topic):
+                expect(topic.OBMol.GetTotalSpinMultiplicity()).to_be_like(pybel_mol.OBMol.GetTotalSpinMultiplicity())
 

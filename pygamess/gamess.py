@@ -52,24 +52,11 @@ class Gamess(object):
         self.obc = ob.OBConversion()
         self.obc.SetInAndOutFormats("gamout", "gamin")
 
-    def run(self, mol):
-        is_pybel = False
-        if isinstance(mol,pybel.Molecule):
-            mol = mol.OBMol
-            is_pybel = True
-
-        self.jobname = randstr(6)
-
+    def parse_gamout(self, gamout):
         err_re = re.compile('^( \*\*\*|Error:)')
         eng_re = re.compile('^                       TOTAL ENERGY =')
         if self.basis['gbasis'] in ['am1', 'pm3', 'mndo']:
             eng_re = re.compile(' FINAL .+ ENERGY IS')
-
-        gamin = self.write_file(mol)
-        gamout = self.tempdir + "/" + self.jobname + ".out"
-
-        chdir(self.tempdir)
-        system("%s %s> %s  2> /dev/null" % (self.gamess, self.jobname, gamout))
 
         err_message = ""
         total_energy = 0
@@ -88,27 +75,55 @@ class Gamess(object):
                     err_message += l
                     err_count -= 1
 
-        # エラーが出たのでstringを渡したらなおった
-        # TypeError: in method 'OBConversion_ReadFile', argument 3 of type 'std::string'
+        # fixed TypeError: in method 'OBConversion_ReadFile', argument 3 of type 'std::string'
         new_mol = ob.OBMol()
         s = open(gamout).read()
         self.obc.ReadString(new_mol, s)
 
-        # singlepoint だと数値が入んないので対応
+        # set energy when single point calculation
         new_mol.SetEnergy(total_energy)
+
+        if len(err_message) > 0:
+            raise GamessError(err_message)
+        else:
+            return new_mol
+
+    def exec_rungms(self, mol):
+        gamin = self.write_file(mol)
+        gamout = self.tempdir + "/" + self.jobname + ".out"
+
+        ## exec rungms
+        chdir(self.tempdir)
+        system("%s %s> %s  2> /dev/null" % (self.gamess, self.jobname, gamout))
+
+        new_mol = self.parse_gamout(gamout)
 
         chdir(self.cwd)
         if not self.debug:
             unlink(gamin)
             unlink(gamout)
 
-        if len(err_message) > 0:
-            raise GamessError(err_message)
-        else:
-            if is_pybel:
-                new_mol = pybel.Molecule(new_mol)
-            return new_mol
+        return new_mol
+        
+    def run(self, mol):
+        is_pybel = False
+        if isinstance(mol,pybel.Molecule):
+            mol = mol.OBMol
+            is_pybel = True
 
+        self.jobname = randstr(6)
+
+        new_mol = self.exec_rungms(mol)
+
+        # openbabel importer bug
+        new_mol.SetTotalSpinMultiplicity(mol.GetTotalSpinMultiplicity())
+
+        if is_pybel:
+            new_mol = pybel.Molecule(new_mol)
+
+        return new_mol
+
+    
     def print_header(self):
         """ gamess header"""
 
