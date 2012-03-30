@@ -17,6 +17,7 @@ obc.ReadFile(mol, "examples/ethane.mol")
 # pybel
 pybel_mol = pybel.readfile('mol','examples/ethane.mol').next()
 
+
 @Vows.batch
 class PyGamess(Vows.Context):
     class Gamess(Vows.Context):
@@ -61,6 +62,14 @@ class PyGamess(Vows.Context):
         def print_header_should_return_a_text(self, topic):
             expect(topic.print_header()).to_be_like(' $contrl runtyp=energy scftyp=rhf $end\n $basis gbasis=sto ngauss=3  $end\n $system mwords=30  $end\n')
 
+        class WhenChangedTo631G(Vows.Context):
+            def topic(self):
+                return Gamess()
+            def print_basis_can_change_631G(self, topic):
+                topic.basis_set('6-31G')
+                expect(topic.print_section('basis')).to_be_like(' $basis gbasis=N31 ngauss=6  $end\n')
+
+
         class WhenRemoveGamess(Vows.Context):
             def topic(self):
                 g = Gamess()
@@ -74,9 +83,9 @@ class PyGamess(Vows.Context):
             def topic(self):
                 return Gamess()
             def can_print_gamin(self, topic):
-                expect(topic.gamess_input).to_be_a_function()
+                expect(topic.input).to_be_a_function()
             def can_convert_obmol_to_gamin(self, topic):
-                    expect(topic.gamess_input(mol)).to_be_like(""" $contrl runtyp=energy scftyp=rhf mult=1  $end
+                    expect(topic.input(mol)).to_be_like(""" $contrl runtyp=energy scftyp=rhf icharg=0 mult=1  $end
  $basis gbasis=sto ngauss=3 $end
  $system mwords=30  $end
  $DATA
@@ -95,7 +104,7 @@ H      1.0      1.1404000000   -0.6586000000   -0.7845000000
             def topic(self):
                 return Gamess()
             def can_convert_pybel_to_gamin(self, topic):
-                expect(topic.gamess_input(pybel_mol)).to_be_like(""" $contrl runtyp=energy scftyp=rhf mult=1  $end
+                expect(topic.input(pybel_mol)).to_be_like(""" $contrl runtyp=energy scftyp=rhf icharg=0 mult=1  $end
  $basis gbasis=sto ngauss=3 $end
  $system mwords=30  $end
  $DATA
@@ -110,12 +119,21 @@ H      1.0      1.1404000000   -0.3501000000    0.9626000000
 H      1.0      1.1405000000    1.0087000000   -0.1781000000 
 H      1.0      1.1404000000   -0.6586000000   -0.7845000000 
  $END\n\n\n""")
+        class WhenGivenAChargedMol(Vows.Context):
+            def topic(self):
+                return Gamess()
+            def can_print_gamin(self, topic):
+                expect(topic.input).to_be_a_function()
+            def can_print_gamin_of_anion(self, topic):
+                    expect(topic.input(pybel.readstring('smi','C(=O)[O-]'))).to_be_like(""" $contrl runtyp=energy scftyp=rhf icharg=-1 mult=1  $end\n $basis gbasis=sto ngauss=3  $end\n $system mwords=30  $end\n $DATA\n\nC1\nC      6.0      0.0000000000    0.0000000000    0.0000000000 \nO      8.0      0.0000000000    0.0000000000    0.0000000000 \nO      8.0      0.0000000000    0.0000000000    0.0000000000 \n $END\n\n\n""")
+            def can_print_gamin_of_cation(self, topic):
+                    expect(topic.input(pybel.readstring('smi','[N+]'))).to_be_like(""" $contrl runtyp=energy scftyp=rhf icharg=1 mult=5  $end\n $basis gbasis=sto ngauss=3  $end\n $system mwords=30  $end\n $DATA\n\nC1\nN      7.0      0.0000000000    0.0000000000    0.0000000000 \n $END\n\n\n""")
 
         class WhenChangedABasis(Vows.Context):
             def topic(self):
                 return Gamess()
             def should_be_changed_a_basis(self, topic):
-                topic.basis_type('am1')
+                topic.basis_set('am1')
                 expect(topic.basis).to_be_like({'gbasis':'am1'})
 
         class WhenChangedARunType(Vows.Context):

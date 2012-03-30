@@ -150,20 +150,27 @@ class Gamess(object):
         if not self.debug:
             rmtree(self.tempdir)
 
-    def basis_type(self, basis_type):
-        if basis_type in ["sto3g", "STO-3G"]:
+    def basis_set(self, basis_type):
+        basis_type = basis_type.upper()
+        if basis_type in ["STO3G", "STO-3G"]:
             self.basis = {'gbasis': 'sto', 'ngauss': '3'}
-        elif basis_type in ["631g", "6-31G(d)", "6-31G"]:
+        elif basis_type in ["321G", "3-21G"]:
+            self.basis = {'gbasis': 'N21', 'ngauss': '3'}
+        elif basis_type in ["631G", "6-31G"]:
+            self.basis = {'gbasis': 'N31', 'ngauss': '6'}
+        elif basis_type in ["6311G", "6-311G"]:
+            self.basis = {'gbasis': 'N311', 'ngauss': '6'}
+        elif basis_type in ["631G*", "6-31G*", "6-31G(D)", "631G(D)"]:
             self.basis = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1'}
-        elif basis_type in ["631gdp", "6-31G(d,p)"]:
+        elif basis_type in ["631G**", "6-31G**","631GDP", "6-31G(D,P)", "631G(D,P)"]:
             self.basis = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1'}
-        elif basis_type in ["631+gdp", "6-31G+(d,p)"]:
+        elif basis_type in ["631+G**", "6-31+G**","631+GDP", "6-31+G(D,P)", "631+G(D,P)"]:
             self.basis = {'gbasis': 'n31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1', 'diffsp': '.t.', }
-        elif basis_type in["am1", "AM1"]:
+        elif basis_type in["AM1"]:
             self.basis = {'gbasis': 'am1'}
-        elif basis_type in["pm3", "PM3"]:
+        elif basis_type in["PM3"]:
             self.basis = {'gbasis': 'pm3'}
-        elif basis_type in["mndo", "MNDO"]:
+        elif basis_type in["MNDO"]:
             self.basis = {'gbasis': 'mndo'}
         else:
             print "basis type not found"
