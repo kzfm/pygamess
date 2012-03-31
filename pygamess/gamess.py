@@ -223,21 +223,23 @@ class Gamess(object):
         self.contrl['scftyp'] = scftype
 
     def py_rungms(self, mol):
-        gamin = path.join(self.tempdir, self.jobname + ".F05")
+        gamin = os.path.join(self.tempdir, self.jobname + ".F05")
         with open(gamin, "w") as f:
             f.write(self.input(mol))
 
-        gamout = path.join(self.tempdir, self.jobname + ".out")
+        gamout = os.path.join(self.tempdir, self.jobname + ".out")
 
         gamess_path = self.gamess_path 
 
-        ddikick = path.join(gamess_path, "ddikick.x")
-        if not path.isfile(ddikick):
+        ddikick = os.path.join(gamess_path, "ddikick.x")
+        if not os.path.isfile(ddikick):
             raise IOError("ddikick not found")
 
-        gamess = path.join(gamess_path, "gamess.Jan122009R1.x")
-        if not path.isfile(ddikick):
+        gamesses = [f for f in os.listdir(gamess_path) if f.startswith('gamess') and f.endswith('.x')]
+        if len(gamesses) < 1:
             raise IOError("gamess.*.x not found")
+        gamess = os.path.join(gamess_path, gamesses[0])
+ 
 
         hostname = socket.gethostname()
 
