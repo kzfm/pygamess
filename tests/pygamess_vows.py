@@ -195,3 +195,16 @@ H      1.0      1.1404000000   -0.6586000000   -0.7845000000
             def should_have_a_same_spin_multiplicity(self, topic):
                 expect(topic.OBMol.GetTotalSpinMultiplicity()).to_be_like(pybel_mol.OBMol.GetTotalSpinMultiplicity())
 
+    class GamessWithGamessPath(Vows.Context):
+        def topic(self):
+            return Gamess(gamess_path="/tmp/test")
+ 
+        def can_change_gamess_path(self, topic):
+            expect(topic.gamess_path).to_be_like("/tmp/test")
+
+    class GamessWithOptimize(Vows.Context):
+        def topic(self):
+            return Gamess(contrl={'runtyp':'optimize'})
+ 
+        def can_change_gamess_path(self, topic):
+            expect(topic.contrl['runtyp']).to_be_like('optimize')
