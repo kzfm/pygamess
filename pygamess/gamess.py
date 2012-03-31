@@ -69,6 +69,13 @@ class Gamess(object):
         self.cis = {'nstate': '1'}
         self.obc = ob.OBConversion()
         self.obc.SetInAndOutFormats("gamout", "gamin")
+        
+        # Todo: rewrite this
+        self.contrl.update(options.get('contrl',{}))
+        self.basis.update(options.get('basis',{}))
+        self.statpt.update(options.get('statpt',{}))
+        self.system.update(options.get('system',{}))
+        self.cis.update(options.get('cis',{}))
 
     def parse_gamout(self, gamout):
         err_re = re.compile('^( \*\*\*|Error:)')
