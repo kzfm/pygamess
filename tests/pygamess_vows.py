@@ -33,8 +33,8 @@ class PyGamess(Vows.Context):
         def should_have_a_debug_flag(self, topic):
             expect(topic.debug).to_be_false()
 
-        def should_have_a_path_for_gamess(self, topic):
-            expect(topic.gamess).Not.to_be_like("rungms not found")
+        def should_have_a_path_for_rungms(self, topic):
+            expect(topic.rungms).Not.to_be_like("rungms not found")
 
         def should_have_a_contrl(self, topic):
             expect(isinstance(topic.contrl, dict)).to_be_true()

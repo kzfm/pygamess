@@ -4,10 +4,11 @@
 import openbabel as ob
 import pybel
 from tempfile import mkdtemp
-from os import removedirs, unlink, system, environ, path, getcwd, chdir, system
+from os import removedirs, unlink, system, environ, path, getcwd, chdir, system, environ
 from shutil import rmtree
 import re
 import string
+import socket
 from random import choice
 
 
@@ -32,16 +33,33 @@ class Gamess(object):
         self.debug = environ.get('debug', False)
         self.err_lines = 10
 
-        if self.debug: print self.tempdir
+        if self.debug:
+            print self.tempdir
+
+        # search gamess_path
+        # 1. find environ
+        # 2. find path which include ddikick.x
+        if gamess_path == None:
+            gamess_path = environ.get('GAMESS_HOME', None)
+
         if gamess_path == None:
             try:
-                gamess_path = filter(lambda f: path.isfile(f),
-                                     [path.join(d, 'rungms') for d in environ['PATH'].split(':')])[0]
+                gamess_path = filter(lambda f: path.isfile(path.join(f, 'ddikick.x')),
+                                     [d for d in environ['PATH'].split(':')])[0]
             except IndexError:
-                print "rungms not found"
+                print "gamess_path not found"
                 exit()
 
-        self.gamess = gamess_path
+        # serch rungms script 
+        rungms = None
+        try:
+            rungms = filter(lambda f: path.isfile(f),
+                                 [path.join(d, 'rungms') for d in environ['PATH'].split(':')])[0]
+        except IndexError:
+            pass
+
+        self.rungms = rungms
+        self.gamess_path = gamess_path
         self.jobname = ''
         self.cwd = getcwd()
         self.contrl = {'scftyp': 'rhf', 'runtyp': 'energy'}
@@ -94,7 +112,7 @@ class Gamess(object):
 
         ## exec rungms
         chdir(self.tempdir)
-        system("%s %s> %s  2> /dev/null" % (self.gamess, self.jobname, gamout))
+        system("%s %s> %s  2> /dev/null" % (self.rungms, self.jobname, gamout))
 
         new_mol = self.parse_gamout(gamout)
 
@@ -104,16 +122,17 @@ class Gamess(object):
             unlink(gamout)
 
         return new_mol
-        
-    def run(self, mol):
+
+    def run(self, mol, use_rungms=False):
         is_pybel = False
-        if isinstance(mol,pybel.Molecule):
+        if isinstance(mol, pybel.Molecule):
             mol = mol.OBMol
             is_pybel = True
 
         self.jobname = randstr(6)
 
-        new_mol = self.exec_rungms(mol)
+        
+        new_mol = self.exec_rungms(mol) if use_rungms else self.py_rungms(mol)
 
         # openbabel importer bug
         new_mol.SetTotalSpinMultiplicity(mol.GetTotalSpinMultiplicity())
@@ -123,7 +142,6 @@ class Gamess(object):
 
         return new_mol
 
-    
     def print_header(self):
         """ gamess header"""
 
@@ -146,7 +164,7 @@ class Gamess(object):
         return section
 
     def input(self, mol):
-        if isinstance(mol,pybel.Molecule):
+        if isinstance(mol, pybel.Molecule):
             mol = mol.OBMol
         self.contrl['mult'] = mol.GetTotalSpinMultiplicity()
         self.contrl['icharg'] = mol.GetTotalCharge()
@@ -177,9 +195,9 @@ class Gamess(object):
             self.basis = {'gbasis': 'N311', 'ngauss': '6'}
         elif basis_type in ["631G*", "6-31G*", "6-31G(D)", "631G(D)"]:
             self.basis = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1'}
-        elif basis_type in ["631G**", "6-31G**","631GDP", "6-31G(D,P)", "631G(D,P)"]:
+        elif basis_type in ["631G**", "6-31G**", "631GDP", "6-31G(D,P)", "631G(D,P)"]:
             self.basis = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1'}
-        elif basis_type in ["631+G**", "6-31+G**","631+GDP", "6-31+G(D,P)", "631+G(D,P)"]:
+        elif basis_type in ["631+G**", "6-31+G**", "631+GDP", "6-31+G(D,P)", "631+G(D,P)"]:
             self.basis = {'gbasis': 'n31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1', 'diffsp': '.t.', }
         elif basis_type in["AM1"]:
             self.basis = {'gbasis': 'am1'}
@@ -197,6 +215,78 @@ class Gamess(object):
     def scf_type(self, scftype):
         self.contrl['scftyp'] = scftype
 
+    def py_rungms(self, mol):
+        gamin = path.join(self.tempdir, self.jobname + ".F05")
+        with open(gamin, "w") as f:
+            f.write(self.input(mol))
+
+        gamout = path.join(self.tempdir, self.jobname + ".out")
+
+        gamess_path = self.gamess_path 
+
+        ddikick = path.join(gamess_path, "ddikick.x")
+        if not path.isfile(ddikick):
+            raise IOError("ddikick not found")
+
+        gamess = path.join(gamess_path, "gamess.Jan122009R1.x")
+        if not path.isfile(ddikick):
+            raise IOError("gamess.*.x not found")
+
+        hostname = socket.gethostname()
+
+        setenv_data = [
+            (" MAKEFP", "efp"), ("GAMMA", "gamma"), ("TRAJECT", "trj"),
+            ("RESTART", "rst"), ("  PUNCH", "dat"), ("  INPUT", "F05"),
+            (" AOINTS", "F08"), (" MOINTS", "F09"), ("DICTNRY", "F10"),
+            ("DRTFILE", "F11"), ("CIVECTR", "F12"), ("CASINTS", "F13"),
+            (" CIINTS", "F14"), (" WORK15", "F15"), (" WORK16", "F16"),
+            ("CSFSAVE", "F17"), ("FOCKDER", "F18"), (" WORK19", "F19"),
+            (" DASORT", "F20"), ("DFTINTS", "F21"), ("DFTGRID", "F22"),
+            (" JKFILE", "F23"), (" ORDINT", "F24"), (" EFPIND", "F25"),
+            ("SVPWRK1", "F26"), ("SVPWRK2", "F27"), ("  MLTPL", "F28"),
+            (" MLTPLT", "F29"), (" DAFL30", "F30"), (" SOINTX", "F31"),
+            (" SOINTY", "F32"), (" SOINTZ", "F33"), (" SORESC", "F34"),
+            ("GCILIST", "F37"), ("HESSIAN", "F38"), ("QMMMTEI", "F39"),
+            ("SOCCDAT", "F40"), (" AABB41", "F41"), (" BBAA42", "F42"),
+            (" BBBB43", "F43"), (" MCQD50", "F50"), (" MCQD51", "F51"),
+            (" MCQD52", "F52"), (" MCQD53", "F53"), (" MCQD54", "F54"),
+            (" MCQD55", "F55"), (" MCQD56", "F56"), (" MCQD57", "F57"),
+            (" MCQD58", "F58"), (" MCQD59", "F59"), (" MCQD60", "F60"),
+            ("NMRINT1", "F61"), ("NMRINT2", "F62"), ("NMRINT3", "F63"),
+            ("NMRINT4", "F64"), ("NMRINT5", "F65"), ("NMRINT6", "F66"),
+            ("ELNUINT", "F67"), ("NUNUINT", "F68"), (" NUMOIN", "F69"),
+            (" GMCREF", "F70"), (" GMCO2R", "F71"), (" GMCROC", "F72"),
+            (" GMCOOC", "F73"), (" GMCCC0", "F74"), (" GMCHMA", "F75"),
+            (" GMCEI1", "F76"), (" GMCEI2", "F77"), (" GMCEOB", "F78"),
+            (" GMCEDT", "F79"), (" GMCERF", "F80"), (" GMCHCR", "F81"),
+            (" GMCGJK", "F82"), (" GMCGAI", "F83"), (" GMCGEO", "F84"),
+            (" GMCTE1", "F85"), (" GMCTE2", "F86"), (" GMCHEF", "F87"),
+            (" GMCMOL", "F88"), (" GMCMOS", "F89"), (" GMCWGT", "F90"),
+            (" GMCRM2", "F91"), (" GMCRM1", "F92"), (" GMCR00", "F93"),
+            (" GMCRP1", "F94"), (" GMCRP2", "F95"), (" GMCVEF", "F96"),
+            (" GMCDIN", "F97"), (" GMC2SZ", "F98"), (" GMCCCS", "F99")
+            ]
+
+        for e in setenv_data:
+            environ[e[0].strip()] = path.join(self.tempdir, self.jobname + "." + e[1])
+
+        environ["ERICFMT"] = path.join(gamess_path, "ericfmt.dat")
+        environ["MCPPATH"] = path.join(gamess_path, "mcpdata")
+        environ["EXTBAS"] = "/dev/null"
+        environ["NUCBAS"] = "/dev/null"
+
+        exec_string = "%s %s %s -ddi 1 1 %s -scr %s > %s" % \
+            (ddikick, gamess, self.jobname, hostname, self.tempdir, gamout)
+        system(exec_string)
+
+        new_mol = self.parse_gamout(gamout)
+
+        chdir(self.cwd)
+        if not self.debug:
+            unlink(gamin)
+            unlink(gamout)
+
+        return new_mol
 
 if __name__ == '__main__':
 
