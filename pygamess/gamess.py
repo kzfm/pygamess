@@ -4,9 +4,9 @@
 import openbabel as ob
 import pybel
 from tempfile import mkdtemp
-from os import removedirs, unlink, system, environ, path, getcwd, chdir, system, environ
 from shutil import rmtree
 import re
+import os
 import string
 import socket
 from random import choice
@@ -28,9 +28,9 @@ class GamessError(Exception):
 class Gamess(object):
     """GAMESS WRAPPER"""
 
-    def __init__(self, gamess_path=None):
+    def __init__(self, gamess_path=None, **options):
         self.tempdir = mkdtemp()
-        self.debug = environ.get('debug', False)
+        self.debug = os.environ.get('debug', False)
         self.err_lines = 10
 
         if self.debug:
@@ -40,12 +40,12 @@ class Gamess(object):
         # 1. find environ
         # 2. find path which include ddikick.x
         if gamess_path == None:
-            gamess_path = environ.get('GAMESS_HOME', None)
+            gamess_path = os.environ.get('GAMESS_HOME', None)
 
         if gamess_path == None:
             try:
-                gamess_path = filter(lambda f: path.isfile(path.join(f, 'ddikick.x')),
-                                     [d for d in environ['PATH'].split(':')])[0]
+                gamess_path = filter(lambda f: os.path.isfile(os.path.join(f, 'ddikick.x')),
+                                     [d for d in os.environ['PATH'].split(':')])[0]
             except IndexError:
                 print "gamess_path not found"
                 exit()
@@ -53,15 +53,15 @@ class Gamess(object):
         # serch rungms script 
         rungms = None
         try:
-            rungms = filter(lambda f: path.isfile(f),
-                                 [path.join(d, 'rungms') for d in environ['PATH'].split(':')])[0]
+            rungms = filter(lambda f: os.path.isfile(f),
+                                 [os.path.join(d, 'rungms') for d in os.environ['PATH'].split(':')])[0]
         except IndexError:
             pass
 
         self.rungms = rungms
         self.gamess_path = gamess_path
         self.jobname = ''
-        self.cwd = getcwd()
+        self.cwd = os.getcwd()
         self.contrl = {'scftyp': 'rhf', 'runtyp': 'energy'}
         self.basis = {'gbasis': 'sto', 'ngauss': '3'}
         self.statpt = {'opttol': '0.0001', 'nstep': '20', }
@@ -111,15 +111,15 @@ class Gamess(object):
         gamout = self.tempdir + "/" + self.jobname + ".out"
 
         ## exec rungms
-        chdir(self.tempdir)
-        system("%s %s> %s  2> /dev/null" % (self.rungms, self.jobname, gamout))
+        os.chdir(self.tempdir)
+        os.system("%s %s> %s  2> /dev/null" % (self.rungms, self.jobname, gamout))
 
         new_mol = self.parse_gamout(gamout)
 
-        chdir(self.cwd)
+        os.chdir(self.cwd)
         if not self.debug:
-            unlink(gamin)
-            unlink(gamout)
+            os.unlink(gamin)
+            os.unlink(gamout)
 
         return new_mol
 
@@ -268,23 +268,23 @@ class Gamess(object):
             ]
 
         for e in setenv_data:
-            environ[e[0].strip()] = path.join(self.tempdir, self.jobname + "." + e[1])
+            os.environ[e[0].strip()] = os.path.join(self.tempdir, self.jobname + "." + e[1])
 
-        environ["ERICFMT"] = path.join(gamess_path, "ericfmt.dat")
-        environ["MCPPATH"] = path.join(gamess_path, "mcpdata")
-        environ["EXTBAS"] = "/dev/null"
-        environ["NUCBAS"] = "/dev/null"
+        os.environ["ERICFMT"] = os.path.join(gamess_path, "ericfmt.dat")
+        os.environ["MCPPATH"] = os.path.join(gamess_path, "mcpdata")
+        os.environ["EXTBAS"] = "/dev/null"
+        os.environ["NUCBAS"] = "/dev/null"
 
         exec_string = "%s %s %s -ddi 1 1 %s -scr %s > %s" % \
             (ddikick, gamess, self.jobname, hostname, self.tempdir, gamout)
-        system(exec_string)
+        os.system(exec_string)
 
         new_mol = self.parse_gamout(gamout)
 
-        chdir(self.cwd)
+        os.chdir(self.cwd)
         if not self.debug:
-            unlink(gamin)
-            unlink(gamout)
+            os.unlink(gamin)
+            os.unlink(gamout)
 
         return new_mol
 
