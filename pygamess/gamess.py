@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- encoding:utf-8 -*-
 
-import openbabel as ob
-import pybel
+from rdkit import Chem
 from tempfile import mkdtemp
 from shutil import rmtree
 import re
@@ -39,10 +38,10 @@ class Gamess(object):
         # search gamess_path
         # 1. find environ
         # 2. find path which include ddikick.x
-        if gamess_path == None:
+        if gamess_path is None:
             gamess_path = os.environ.get('GAMESS_HOME', None)
 
-        if gamess_path == None:
+        if gamess_path is None:
             try:
                 gamess_path = filter(lambda f: os.path.isfile(os.path.join(f, 'ddikick.x')),
                                      [d for d in os.environ['PATH'].split(':')])[0]
@@ -50,11 +49,10 @@ class Gamess(object):
                 print "gamess_path not found"
                 exit()
 
-        # serch rungms script 
+        #  serch rungms script
         rungms = None
         try:
-            rungms = filter(lambda f: os.path.isfile(f),
-                                 [os.path.join(d, 'rungms') for d in os.environ['PATH'].split(':')])[0]
+            rungms = filter(lambda f: os.path.isfile(f), [os.path.join(d, 'rungms') for d in os.environ['PATH'].split(':')])[0]
         except IndexError:
             pass
 
@@ -67,17 +65,15 @@ class Gamess(object):
         self.statpt = {'opttol': '0.0001', 'nstep': '20', }
         self.system = {'mwords': '30'}
         self.cis = {'nstate': '1'}
-        self.obc = ob.OBConversion()
-        self.obc.SetInAndOutFormats("gamout", "gamin")
-        
-        # Todo: rewrite this
-        self.contrl.update(options.get('contrl',{}))
-        self.basis.update(options.get('basis',{}))
-        self.statpt.update(options.get('statpt',{}))
-        self.system.update(options.get('system',{}))
-        self.cis.update(options.get('cis',{}))
 
-    def parse_gamout(self, gamout):
+        #  Todo: rewrite this
+        self.contrl.update(options.get('contrl', {}))
+        self.basis.update(options.get('basis', {}))
+        self.statpt.update(options.get('statpt', {}))
+        self.system.update(options.get('system', {}))
+        self.cis.update(options.get('cis', {}))
+
+    def parse_gamout(self, gamout, mol):
         err_re = re.compile('^( \*\*\*|Error:)')
         eng_re = re.compile('^                       TOTAL ENERGY =')
         if self.basis['gbasis'] in ['am1', 'pm3', 'mndo']:
@@ -100,28 +96,21 @@ class Gamess(object):
                     err_message += l
                     err_count -= 1
 
-        # fixed TypeError: in method 'OBConversion_ReadFile', argument 3 of type 'std::string'
-        new_mol = ob.OBMol()
-        s = open(gamout).read()
-        self.obc.ReadString(new_mol, s)
-
-        # set energy when single point calculation
-        new_mol.SetEnergy(total_energy)
+        mol.SetDoubleProp("total_energy", total_energy)
 
         if len(err_message) > 0:
             raise GamessError(err_message)
         else:
-            return new_mol
+            return mol
 
     def exec_rungms(self, mol):
         gamin = self.write_file(mol)
         gamout = self.tempdir + "/" + self.jobname + ".out"
-
-        ## exec rungms
+        #  exec rungms
         os.chdir(self.tempdir)
         os.system("%s %s> %s  2> /dev/null" % (self.rungms, self.jobname, gamout))
 
-        new_mol = self.parse_gamout(gamout)
+        new_mol = self.parse_gamout(gamout, mol)
 
         os.chdir(self.cwd)
         if not self.debug:
@@ -131,22 +120,8 @@ class Gamess(object):
         return new_mol
 
     def run(self, mol, use_rungms=False):
-        is_pybel = False
-        if isinstance(mol, pybel.Molecule):
-            mol = mol.OBMol
-            is_pybel = True
-
         self.jobname = randstr(6)
-
-        
         new_mol = self.exec_rungms(mol) if use_rungms else self.py_rungms(mol)
-
-        # openbabel importer bug
-        new_mol.SetTotalSpinMultiplicity(mol.GetTotalSpinMultiplicity())
-
-        if is_pybel:
-            new_mol = pybel.Molecule(new_mol)
-
         return new_mol
 
     def print_header(self):
@@ -170,14 +145,26 @@ class Gamess(object):
         section += " $end\n"
         return section
 
+    def atom_section(self, mol):
+        # self.contrl['icharg'] = mol.GetFormalCharge()
+        conf = mol.GetConformer(0)
+        section = ""
+        for atom in mol.GetAtoms():
+            pos = conf.GetAtomPosition(atom.GetIdx())
+            section += "{:<3} {:>4}.0   {:> 15.10f} {:> 15.10f} {: 15.10f} \n".format(atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z)
+            # "%-3s %4d.0    %15.10f  %15.10f  %15.10f "
+        return section
+
     def input(self, mol):
-        if isinstance(mol, pybel.Molecule):
-            mol = mol.OBMol
-        self.contrl['mult'] = mol.GetTotalSpinMultiplicity()
-        self.contrl['icharg'] = mol.GetTotalCharge()
-        gamin_tmp = self.obc.WriteString(mol)
         h = self.print_header()
-        return gamin_tmp.replace(" $CONTRL COORD=CART UNITS=ANGS $END\n", h[:-1])
+        return """ $contrl runtyp=energy scftyp=rhf mult=1  $end
+ $basis gbasis=sto ngauss=3 $end
+ $system mwords=30  $end
+ $DATA
+6324
+C1
+{}$END
+""".format(self.atom_section(mol))
 
     def write_file(self, mol):
         gamess_input_str = self.input(mol)
@@ -228,8 +215,7 @@ class Gamess(object):
             f.write(self.input(mol))
 
         gamout = os.path.join(self.tempdir, self.jobname + ".out")
-
-        gamess_path = self.gamess_path 
+        gamess_path = self.gamess_path
 
         ddikick = os.path.join(gamess_path, "ddikick.x")
         if not os.path.isfile(ddikick):
@@ -239,7 +225,6 @@ class Gamess(object):
         if len(gamesses) < 1:
             raise IOError("gamess.*.x not found")
         gamess = os.path.join(gamess_path, gamesses[0])
- 
 
         hostname = socket.gethostname()
 
@@ -288,7 +273,7 @@ class Gamess(object):
             (ddikick, gamess, self.jobname, hostname, self.tempdir, gamout)
         os.system(exec_string)
 
-        new_mol = self.parse_gamout(gamout)
+        new_mol = self.parse_gamout(gamout, mol)
 
         os.chdir(self.cwd)
         if not self.debug:
@@ -300,18 +285,10 @@ class Gamess(object):
 if __name__ == '__main__':
 
     g = Gamess()
-   #g.basis_type('631gdp')
-    #g.run_type('')
-    obc = ob.OBConversion()
-    obc.SetInFormat("mol")
-
-    mol = ob.OBMol()
-    next = obc.ReadFile(mol, "examples/CID_674.sdf")
-    print g.input(mol)
+    mol = Chem.MolFromMolFile("examples/ethane.mol", removeHs=False)
     try:
         newmol = g.run(mol)
     except GamessError, gerr:
         print gerr.value
 
-    print newmol.GetEnergy()
-    print [(obatom.GetIdx(), obatom.GetType(), obatom.GetPartialCharge()) for obatom in ob.OBMolAtomIter(newmol)]
+    print newmol.GetProp("total_energy")
