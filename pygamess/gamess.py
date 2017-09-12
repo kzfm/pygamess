@@ -156,15 +156,11 @@ class Gamess(object):
         return section
 
     def input(self, mol):
-        h = self.print_header()
-        return """ $contrl runtyp=energy scftyp=rhf mult=1  $end
- $basis gbasis=sto ngauss=3 $end
- $system mwords=30  $end
- $DATA
+        return """{0} $DATA
 6324
 C1
-{}$END
-""".format(self.atom_section(mol))
+{1}$END
+""".format(self.print_header(), self.atom_section(mol))
 
     def write_file(self, mol):
         gamess_input_str = self.input(mol)
