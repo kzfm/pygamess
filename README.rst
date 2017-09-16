@@ -119,6 +119,16 @@ use input method::
 History
 -------
 
+0.4.1.1 (2017-09-16)
+~~~~~~~~~~~~~~~~~~
+
+* Update Readme
+
+0.4.1 (2017-09-16)
+~~~~~~~~~~~~~~~~~~
+
+* Bug fixed (coordinates problem)
+
 0.4.0 (2017-09-13)
 ~~~~~~~~~~~~~~~~~~
 
@@ -135,7 +145,7 @@ History
 0.2.2 (2012-03-30)
 ~~~~~~~~~~~~~~~~~~
 
-* Ddded charge settings
+* Added charge settings
 * Method name changed (gamess_input -> input)
 
 0.2.1 (2012-03-23)
