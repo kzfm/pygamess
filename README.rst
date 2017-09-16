@@ -122,47 +122,47 @@ History
 0.4.0 (2017-09-13)
 ~~~~~~~~~~~~~~~~~~
 
-* Changed the backend library from openbabel to RDKit
+* Change the backend library from openbabel to RDKit
 
 0.3.0 (2012-03-31)
 ~~~~~~~~~~~~~~~~~~
 
-* no more required rungms script and use internal rungms (default)
-* added basis_set method(STO-3G,3-21G,6-31G,6-311G,6-31G*,6-31G**,AM1,PM3,MNDO)
-* constructor can accept options
-* bug fixed (spin multiplicity)
+* Use internal rungms (default)
+* Added basis_set method(STO-3G,3-21G,6-31G,6-311G,6-31G*,6-31G**,AM1,PM3,MNDO)
+* Constructor can accept options
+* Bug fixed (spin multiplicity)
 
 0.2.2 (2012-03-30)
 ~~~~~~~~~~~~~~~~~~
 
-* added charge settings
-* method name changed (gamess_input -> input)
+* Ddded charge settings
+* Method name changed (gamess_input -> input)
 
 0.2.1 (2012-03-23)
 ~~~~~~~~~~~~~~~~~~
 
-* bug fixed (multiplicity setting for pybel) 
-* bug fixed (print error when rungms exec failed)
-* added document
+* Bug fixed (multiplicity setting for pybel) 
+* Bug fixed (print error when rungms exec failed)
+* Added document
 
 0.2.0 (2012-03-06)
 ~~~~~~~~~~~~~~~~~~
 
-* run method can accept OBMol and Pybel-Molecule object
+* Run method can accept OBMol and Pybel-Molecule object
 
 0.1.2 (2011-09-23)
 ~~~~~~~~~~~~~~~~~~
 
-* added CIS method (and optimization)
+* Added CIS method (and optimization)
 
 0.1.1 (2011-08-06)
 ~~~~~~~~~~~~~~~~~~
 
-* updated document
-* semiempical method (AM1, PM3, MNDO)
-* added statpt option
-* changed default error print (10 lines)
+* Updated document
+* Semiempical method (AM1, PM3, MNDO)
+* Added statpt option
+* Changed default error print (10 lines)
 
 0.1 (2011-6-25)
 ~~~~~~~~~~~~~~~~~~
-* first release
+* First release

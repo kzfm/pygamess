@@ -75,33 +75,40 @@ class Gamess(object):
 
     def parse_gamout(self, gamout, mol):
         err_re = re.compile('^( \*\*\*|Error:)')
-        eng_re = re.compile('^                       TOTAL ENERGY =')
-        if self.basis['gbasis'] in ['am1', 'pm3', 'mndo']:
-            eng_re = re.compile(' FINAL .+ ENERGY IS')
+        eng_re = re.compile('TOTAL ENERGY =(.*)\n')
+        coord_re = re.compile('COORDINATES OF ALL ATOMS ARE (.*?)------------\n(.*?)\n\n', re.DOTALL)
+        #if self.basis['gbasis'] in ['am1', 'pm3', 'mndo']:
+        #    eng_re = re.compile(' FINAL .+ ENERGY IS')
 
         err_message = ""
+        err_count = 0
         total_energy = 0
 
-        with open(gamout, "r") as f:
-            err_count = 0
-            for l in f:
-                if eng_re.match(l):
-                    if self.basis['gbasis'] in ['am1', 'pm3', 'mndo']:
-                        total_energy = float(l.split()[4])
-                    else:
-                        total_energy = float(l.split('=')[1])
-                if err_re.match(l):
-                    err_count = self.err_lines
-                if err_count > 0:
-                    err_message += l
-                    err_count -= 1
+        nmol = Chem.Mol(mol)
+        conf = nmol.GetConformer(0)
 
-        mol.SetDoubleProp("total_energy", total_energy)
+        out_str = open(gamout, "r").read()
+        for m in eng_re.finditer(out_str):
+            nmol.SetDoubleProp("total_energy", float(m.group(1).strip()))
+
+        for m in coord_re.finditer(out_str):
+            atom_idx = 0
+            for l in m.group(2).split("\n"):
+                coord = l.split()
+                cds = [float(coord[2]), float(coord[3]), float(coord[4])]
+                conf.SetAtomPosition(atom_idx, cds)
+                atom_idx += 1
+
+        #         if err_re.match(l):
+        #             err_count = self.err_lines
+        #             if err_count > 0:
+        #                 err_message += l
+        #             err_count -= 1
 
         if len(err_message) > 0:
             raise GamessError(err_message)
         else:
-            return mol
+            return nmol
 
     def exec_rungms(self, mol):
         gamin = self.write_file(mol)
@@ -126,23 +133,23 @@ class Gamess(object):
 
     def print_header(self):
         """ gamess header"""
-
-        header = ""
-        header += self.print_section('contrl')
-        header += self.print_section('basis')
-        header += self.print_section('system')
+        header = "{}{}{}".format(self.print_section('contrl'),
+                                 self.print_section('basis'),
+                                 self.print_section('system'))
         if self.contrl['runtyp'] == 'optimize':
             header += self.print_section('statpt')
+
         if self.contrl.get('citype', None) == 'cis':
             header += self.print_section('cis')
+
         return header
 
     def print_section(self, pref):
         d = getattr(self, pref)
-        section = " $%s " % pref
+        section = " ${} ".format(pref)
         for k, v in d.iteritems():
-            section += "%s=%s " % (k, v)
-        section += " $end\n"
+            section += "{}={} ".format(k, v)
+        section += "$end\n"
         return section
 
     def atom_section(self, mol):
@@ -152,21 +159,18 @@ class Gamess(object):
         for atom in mol.GetAtoms():
             pos = conf.GetAtomPosition(atom.GetIdx())
             section += "{:<3} {:>4}.0   {:> 15.10f} {:> 15.10f} {: 15.10f} \n".format(atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z)
-            # "%-3s %4d.0    %15.10f  %15.10f  %15.10f "
         return section
 
     def input(self, mol):
-        return """{0} $DATA
-6324
-C1
-{1}$END
-""".format(self.print_header(), self.atom_section(mol))
+        return "{0} $DATA\n6324\nC1\n{1} $END\n".format(self.print_header(),
+                                                        self.atom_section(mol))
 
     def write_file(self, mol):
-        gamess_input_str = self.input(mol)
-        gamess_input_file = self.tempdir + "/" + self.jobname + ".inp"
+        gamess_input_file = os.path.join(self.tempdir, "{}.inp".format(self.jobname))
+
         with open(gamess_input_file, "w") as f:
-            f.write(gamess_input_str)
+            f.write(self.input(mol))
+
         return gamess_input_file
 
     def __del__(self):
