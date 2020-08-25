@@ -13,7 +13,7 @@ from random import choice
 
 def randstr(n):
     """make a random string"""
-    return u''.join(choice('abcdefghijklmnopqrstuvwxyz') for i in xrange(n))
+    return ''.join(choice('abcdefghijklmnopqrstuvwxyz') for i in range(n))
 
 
 class GamessError(Exception):
@@ -33,7 +33,7 @@ class Gamess(object):
         self.err_lines = 10
 
         if self.debug:
-            print self.tempdir
+            print(self.tempdir)
 
         # search gamess_path
         # 1. find environ
@@ -46,7 +46,7 @@ class Gamess(object):
                 gamess_path = filter(lambda f: os.path.isfile(os.path.join(f, 'ddikick.x')),
                                      [d for d in os.environ['PATH'].split(':')])[0]
             except IndexError:
-                print "gamess_path not found"
+                print("gamess_path not found")
                 exit()
 
         #  serch rungms script
@@ -56,7 +56,7 @@ class Gamess(object):
         except IndexError:
             pass
 
-        self.rungms = rungms
+        self.rungms = list(rungms)
         self.gamess_path = gamess_path
         self.jobname = ''
         self.cwd = os.getcwd()
@@ -147,7 +147,7 @@ class Gamess(object):
     def print_section(self, pref):
         d = getattr(self, pref)
         section = " ${} ".format(pref)
-        for k, v in d.iteritems():
+        for k, v in d.items():
             section += "{}={} ".format(k, v)
         section += "$end\n"
         return section
@@ -200,7 +200,7 @@ class Gamess(object):
         elif basis_type in["MNDO"]:
             self.basis = {'gbasis': 'mndo'}
         else:
-            print "basis type not found"
+            print("basis type not found")
         return self.basis
 
     def run_type(self, runtype):
@@ -288,7 +288,7 @@ if __name__ == '__main__':
     mol = Chem.MolFromMolFile("examples/ethane.mol", removeHs=False)
     try:
         newmol = g.run(mol)
-    except GamessError, gerr:
-        print gerr.value
+    except GamessError as gerr:
+        print(gerr.value)
 
-    print newmol.GetProp("total_energy")
+    print(newmol.GetProp("total_energy"))
