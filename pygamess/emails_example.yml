@@ -1,0 +1,20 @@
+smtp:
+  server: smtp.example.com
+  ssl: True
+  port: 465
+  #port: 25
+  username: user@example.com
+  password: <password>
+success:
+  subject: "Sucessful Gamess execution"
+  body: "The run in {0} ended successfully. Last lines\n:{1}."
+  receivers:
+  - user1@example.com
+  - user2@example.com
+error:
+  #The program uses Formated String literals. with the exception object as the first substitutor.
+  subject: "Errored Gamess execution"
+  body: "The run in {0} ended with the error code {1}. Last lines\n:{2}."
+  receivers:
+  - user1@example.com
+  - user2@example.com
