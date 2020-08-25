@@ -6,7 +6,6 @@ from tempfile import mkdtemp
 from shutil import rmtree
 import re
 import os
-import string
 import socket
 from random import choice
 
@@ -43,8 +42,8 @@ class Gamess(object):
 
         if gamess_path is None:
             try:
-                gamess_path = filter(lambda f: os.path.isfile(os.path.join(f, 'ddikick.x')),
-                                     [d for d in os.environ['PATH'].split(':')])[0]
+                gamess_path = list(filter(lambda f: os.path.isfile(os.path.join(f, 'ddikick.x')),
+                                     [d for d in os.environ['PATH'].split(':')]))[0]
             except IndexError:
                 print("gamess_path not found")
                 exit()
