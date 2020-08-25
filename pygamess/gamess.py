@@ -6,7 +6,7 @@ from tempfile import mkdtemp
 from shutil import rmtree
 import re
 import os
-import string
+import multiprocessing
 import socket
 from random import choice
 
@@ -24,13 +24,18 @@ class GamessError(Exception):
         return repr(self.value)
 
 
-class Gamess(object):
+class Gamess:
     """GAMESS WRAPPER"""
 
-    def __init__(self, gamess_path=None, **options):
+    def __init__(self, gamess_path=None, rungms_suffix='', executable_num='00', num_cores=None, **options):
         self.tempdir = mkdtemp()
         self.debug = os.environ.get('debug', False)
+        self.executable_num = executable_num
         self.err_lines = 10
+        if num_cores is None:
+            self.num_cores = multiprocessing.cpu_count()
+        else:
+            self.num_cores = num_cores
 
         if self.debug:
             print(self.tempdir)
@@ -43,8 +48,8 @@ class Gamess(object):
 
         if gamess_path is None:
             try:
-                gamess_path = filter(lambda f: os.path.isfile(os.path.join(f, 'ddikick.x')),
-                                     [d for d in os.environ['PATH'].split(':')])[0]
+                gamess_path = list(filter(lambda f: os.path.isfile(os.path.join(f, 'ddikick.x')),
+                                     [d for d in os.environ['PATH'].split(':')]))[0]
             except IndexError:
                 print("gamess_path not found")
                 exit()
@@ -52,11 +57,11 @@ class Gamess(object):
         #  serch rungms script
         rungms = None
         try:
-            rungms = filter(lambda f: os.path.isfile(f), [os.path.join(d, 'rungms') for d in os.environ['PATH'].split(':')])[0]
+            rungms = list(filter(lambda f: os.path.isfile(f), [os.path.join(d, f'rungms{rungms_suffix}') for d in os.environ['PATH'].split(':')]))[0]
         except IndexError:
             pass
 
-        self.rungms = list(rungms)
+        self.rungms = rungms
         self.gamess_path = gamess_path
         self.jobname = ''
         self.cwd = os.getcwd()
@@ -125,6 +130,21 @@ class Gamess(object):
             os.unlink(gamout)
 
         return new_mol
+
+    def run_input(self, gamin, gamout):
+        """"""
+        command = "%s %s %s %i > %s  2> /dev/null" % (self.rungms, gamin, self.executable_num,
+            self.num_cores, gamout)
+        print(f"Executing {command}")
+        outcode = os.system(command)
+        print(f"Status code: {outcode}")
+        #new_mol = self.parse_gamout(gamout)
+
+        #$os.chdir(self.cwd)
+        #if not self.debug:
+        #    os.unlink(gamin)
+        #    os.unlink(gamout)
+        #return new_mol
 
     def run(self, mol, use_rungms=False):
         self.jobname = randstr(6)
