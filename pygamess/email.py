@@ -3,7 +3,7 @@ import smtplib, os, ssl
 #import traceback
 context = ssl.create_default_context()
 
-def smtplib_email(email_body, receivers, subject, smtpconfig):
+def smtplib_email(email_body, receivers, subject, smtpconfig, debug_level=0):
     #If exception is None, this function is deemed to be reporting a succesful run, else it is deemed to
     #be reporting an error
     use_ssl = smtpconfig.get("ssl")
@@ -12,7 +12,8 @@ def smtplib_email(email_body, receivers, subject, smtpconfig):
     else:
         smtp = smtplib.SMTP(smtpconfig['server'], smtpconfig['port'])
     with smtp:
-        smtp.set_debuglevel(1)
+       #smtp.set_debuglevel(1)
+        smtp.set_debuglevel(debug_level)
         if use_ssl:
             smtp.login(smtpconfig["username"], smtpconfig["password"])
             #smtp.starttls(context=context)

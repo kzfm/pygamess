@@ -7,9 +7,13 @@ from shutil import rmtree
 import re
 import os
 import multiprocessing
+import subprocess
 import socket
 from random import choice
+import logging
+logging.basicConfig(level=logging.INFO)#Configures logging to level INFO if the logging has not been configured
 
+logger = logging.getLogger(__name__)
 
 def randstr(n):
     """make a random string"""
@@ -72,12 +76,22 @@ class Gamess:
         self.cis = {'nstate': '1'}
 
         #  Todo: rewrite this
+        for configname in ('contrl', 'basis', 'statpt', 'system', 'cis'):
+            dct = getattr(self, configname)
         self.contrl.update(options.get('contrl', {}))
         self.basis.update(options.get('basis', {}))
         self.statpt.update(options.get('statpt', {}))
         self.system.update(options.get('system', {}))
         self.cis.update(options.get('cis', {}))
 
+    def reset(self):
+        #TODO remove the scratch fildrs harcoding
+        killproc = subprocess.run("pkill gamess", shell=True)
+        #if killproc.returncode != 0:
+        #    assert 0, killproc.stderr
+        delcmd = "rm -rf /scr1/lucioric/* /home/lucioric/gamess/gamess/scr/*"
+        delproc = subprocess.run(delcmd, shell=True)
+        delproc.check_returncode()
     def parse_gamout(self, gamout, mol):
         err_re = re.compile('^( \*\*\*|Error:)')
         eng_re = re.compile('TOTAL ENERGY =(.*)\n')
@@ -135,9 +149,9 @@ class Gamess:
         """"""
         command = "%s %s %s %i > %s  2> /dev/null" % (self.rungms, gamin, self.executable_num,
             self.num_cores, gamout)
-        print(f"Executing {command}")
+        logger.info(f"Executing {command}")
         outcode = os.system(command)
-        print(f"Status code: {outcode}")
+        logger.info(f"Status code: {outcode}")
         #new_mol = self.parse_gamout(gamout)
 
         #$os.chdir(self.cwd)
@@ -279,7 +293,7 @@ class Gamess:
             (" GMCRM2", "F91"), (" GMCRM1", "F92"), (" GMCR00", "F93"),
             (" GMCRP1", "F94"), (" GMCRP2", "F95"), (" GMCVEF", "F96"),
             (" GMCDIN", "F97"), (" GMC2SZ", "F98"), (" GMCCCS", "F99")
-            ]
+        ]
 
         for e in setenv_data:
             os.environ[e[0].strip()] = os.path.join(self.tempdir, self.jobname + "." + e[1])
@@ -302,13 +316,13 @@ class Gamess:
 
         return new_mol
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     g = Gamess()
     mol = Chem.MolFromMolFile("examples/ethane.mol", removeHs=False)
     try:
         newmol = g.run(mol)
     except GamessError as gerr:
-        print(gerr.value)
+        logger.error(f"GamesError: {gerr.value}")
 
     print(newmol.GetProp("total_energy"))

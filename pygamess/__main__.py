@@ -1,19 +1,22 @@
 from ruamel.yaml import YAML
-import argparse, subprocess
+import argparse, subprocess, logging
 from . import gamess, email
 parser = argparse.ArgumentParser("pyGamess command line interface")
 parser.add_argument('input_file')
-parser.add_argument('-n','--num_cores', default=None, type=int)
+parser.add_argument('-n', '--num_cores', default=None, type=int)
 parser.add_argument('-x', '--executable_num', default='01', type=str)
 parser.add_argument('-s', '--rungms_suffix', default='0', type=str)
 parser.add_argument('-o', '--output_file', default=None, type=str)
 parser.add_argument('-e', '--emails_yml', nargs="?", type=str)
+parser.add_argument('-r', '--reset', action='store_true', help="Kill existent gamess processes and deletes their files in scratch folders")
 args = parser.parse_args()
 g = gamess.Gamess(rungms_suffix=args.rungms_suffix, executable_num=args.executable_num, num_cores=args.num_cores)
 if args.output_file is None:
     output_file = args.input_file+".log"
 else:
     output_file = args.output_file
+if args.reset:
+	g.reset()
 status = g.run_input(args.input_file, output_file)
 lastlinesrun = subprocess.run(f"tail -n 40 {output_file}", shell=True, stdout=subprocess.PIPE)
 yaml = YAML(typ="safe")
