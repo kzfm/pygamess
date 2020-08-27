@@ -11,9 +11,9 @@ import subprocess
 import socket
 from random import choice
 import logging
-logging.basicConfig(level=logging.INFO)#Configures logging to level INFO if the logging has not been configured
-
+logging.basicConfig(level=logging.INFO)  # Configures logging to level INFO if the logging has not been configured
 logger = logging.getLogger(__name__)
+
 
 def randstr(n):
     """make a random string"""
@@ -53,15 +53,17 @@ class Gamess:
         if gamess_path is None:
             try:
                 gamess_path = list(filter(lambda f: os.path.isfile(os.path.join(f, 'ddikick.x')),
-                                     [d for d in os.environ['PATH'].split(':')]))[0]
+                                     os.environ['PATH'].split(':')))[0]
             except IndexError:
                 print("gamess_path not found")
                 exit()
 
         #  serch rungms script
         rungms = None
+        possible_paths = [os.path.join(d, f'rungms{rungms_suffix}')
+                          for d in os.environ['PATH'].split(':')]
         try:
-            rungms = list(filter(lambda f: os.path.isfile(f), [os.path.join(d, f'rungms{rungms_suffix}') for d in os.environ['PATH'].split(':')]))[0]
+            rungms = list(filter(lambda f: os.path.isfile(f), possible_paths))[0]
         except IndexError:
             pass
 
@@ -78,18 +80,16 @@ class Gamess:
         #  Todo: rewrite this
         for configname in ('contrl', 'basis', 'statpt', 'system', 'cis'):
             dct = getattr(self, configname)
-        self.contrl.update(options.get('contrl', {}))
-        self.basis.update(options.get('basis', {}))
-        self.statpt.update(options.get('statpt', {}))
-        self.system.update(options.get('system', {}))
-        self.cis.update(options.get('cis', {}))
+            dct.update(options.get(configname, {}))
 
     def reset(self):
         #TODO remove the scratch fildrs harcoding
         killproc = subprocess.run("pkill gamess", shell=True)
         #if killproc.returncode != 0:
         #    assert 0, killproc.stderr
-        delcmd = "rm -rf /scr1/lucioric/* /home/lucioric/gamess/gamess/scr/*"
+        scratches = self.discover_scratch_folders()
+        delcmd = "rm -rf {0}".format(" ".join(f"{pth}/*" for pth in scratches.values()))
+        #delcmd = "rm -rf /scr1/lucioric/* /home/lucioric/gamess/gamess/scr/*"
         delproc = subprocess.run(delcmd, shell=True)
         delproc.check_returncode()
     def parse_gamout(self, gamout, mol):
@@ -145,20 +145,38 @@ class Gamess:
 
         return new_mol
 
+    def discover_scratch_folders(self):
+        scratches = {}
+        regexpstring = re.compile(r"^\s*set\s((USER)?SCR)=(.*)")
+        command = fr"grep -Pi '^\s*set\s(USER)?SCR=' {self.rungms}"
+        #coprd = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, text=True) as coprd:
+            returncode = coprd.wait()
+            for line in coprd.stdout:
+                match = regexpstring.match(line.rstrip())
+                mgrps = match.groups()
+                if mgrps[0] not in scratches:
+                    scratches[mgrps[0]] = os.path.expandvars(mgrps[2])
+        #logger.info("returncode {0}".format(returncode))
+        return scratches
     def run_input(self, gamin, gamout):
         """"""
-        command = "%s %s %s %i > %s  2> /dev/null" % (self.rungms, gamin, self.executable_num,
+        command = "%s %s %s %i > %s" % (self.rungms, gamin, self.executable_num,
             self.num_cores, gamout)
         logger.info(f"Executing {command}")
-        outcode = os.system(command)
-        logger.info(f"Status code: {outcode}")
+        completed_gamess = subprocess.run(command, shell=True)
+        #outcode = os.system(command)
+        logger.info(f"Status code: {completed_gamess.returncode}")
+        if completed_gamess.returncode!=0:
+            logger.error("Gamess error: {0}".format(completed_gamess.stderr))
         #new_mol = self.parse_gamout(gamout)
 
         #$os.chdir(self.cwd)
         #if not self.debug:
         #    os.unlink(gamin)
         #    os.unlink(gamout)
-        #return new_mol
+        return completed_gamess.returncode
 
     def run(self, mol, use_rungms=False):
         self.jobname = randstr(6)
