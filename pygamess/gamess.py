@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 # -*- encoding:utf-8 -*-
 
-from rdkit import Chem
 from tempfile import mkdtemp
 from shutil import rmtree
-import re
-import os
+from random import choice
+from rdkit import Chem
 import multiprocessing
 import subprocess
-import socket
-from random import choice
+import datetime
 import logging
+import socket
+import re
+import os
+
 logging.basicConfig(level=logging.INFO)  # Configures logging to level INFO if the logging has not been configured
 logger = logging.getLogger(__name__)
 
@@ -83,13 +85,10 @@ class Gamess:
             dct.update(options.get(configname, {}))
 
     def reset(self):
-        #TODO remove the scratch fildrs harcoding
         killproc = subprocess.run("pkill gamess", shell=True)
-        #if killproc.returncode != 0:
-        #    assert 0, killproc.stderr
         scratches = self.discover_scratch_folders()
-        delcmd = "rm -rf {0}".format(" ".join(f"{pth}/*" for pth in scratches.values()))
         #delcmd = "rm -rf /scr1/lucioric/* /home/lucioric/gamess/gamess/scr/*"
+        delcmd = "rm -rf {0}".format(" ".join(f"{pth}/*" for pth in scratches.values()))
         delproc = subprocess.run(delcmd, shell=True)
         delproc.check_returncode()
     def parse_gamout(self, gamout, mol):
@@ -149,7 +148,6 @@ class Gamess:
         scratches = {}
         regexpstring = re.compile(r"^\s*set\s((USER)?SCR)=(.*)")
         command = fr"grep -Pi '^\s*set\s(USER)?SCR=' {self.rungms}"
-        #coprd = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, text=True) as coprd:
             returncode = coprd.wait()
@@ -158,15 +156,15 @@ class Gamess:
                 mgrps = match.groups()
                 if mgrps[0] not in scratches:
                     scratches[mgrps[0]] = os.path.expandvars(mgrps[2])
-        #logger.info("returncode {0}".format(returncode))
         return scratches
     def run_input(self, gamin, gamout):
         """"""
         command = "%s %s %s %i > %s" % (self.rungms, gamin, self.executable_num,
             self.num_cores, gamout)
+        self.starttime = datetime.datetime.now()
         logger.info(f"Executing {command}")
         completed_gamess = subprocess.run(command, shell=True)
-        #outcode = os.system(command)
+        self.endtime = datetime.datetime.now()
         logger.info(f"Status code: {completed_gamess.returncode}")
         if completed_gamess.returncode!=0:
             logger.error("Gamess error: {0}".format(completed_gamess.stderr))
