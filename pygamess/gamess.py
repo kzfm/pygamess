@@ -5,6 +5,7 @@ from tempfile import mkdtemp
 from shutil import rmtree
 from random import choice
 from rdkit import Chem
+from . import email
 import multiprocessing
 import subprocess
 import datetime
@@ -33,7 +34,8 @@ class GamessError(Exception):
 class Gamess:
     """GAMESS WRAPPER"""
 
-    def __init__(self, gamess_path=None, rungms_suffix='', executable_num='00', num_cores=None, **options):
+    def __init__(self, gamess_path=None, rungms_suffix='', executable_num='00',
+        num_cores=None, reset=False, **options):
         self.tempdir = mkdtemp()
         self.debug = os.environ.get('debug', False)
         self.executable_num = executable_num
@@ -44,7 +46,7 @@ class Gamess:
             self.num_cores = num_cores
 
         if self.debug:
-            print(self.tempdir)
+            print("tmpdir", self.tempdir)
 
         # search gamess_path
         # 1. find environ
@@ -60,7 +62,7 @@ class Gamess:
                 print("gamess_path not found")
                 exit()
 
-        #  serch rungms script
+        #  search rungms script
         rungms = None
         possible_paths = [os.path.join(d, f'rungms{rungms_suffix}')
                           for d in os.environ['PATH'].split(':')]
@@ -72,25 +74,80 @@ class Gamess:
         self.rungms = rungms
         self.gamess_path = gamess_path
         self.jobname = ''
-        self.cwd = os.getcwd()
-        self.contrl = {'scftyp': 'rhf', 'runtyp': 'energy'}
+        #self.cwd = os.getcwd()
+
+        #Minimal options set. Options specified in the options arguments will be
+        # merged into this options set
+        self.options = {
+            'contrl': {'scftyp': 'rhf', 'runtyp': 'energy'},
+            'basis': {'gbasis': 'sto', 'ngauss': '3'},
+            'statpt': {'opttol': '0.0001', 'nstep': '20'},
+            'system': {'mwords': '30'},
+            'cis': {'nstate': '1'}
+        }
+        """self.contrl = {'scftyp': 'rhf', 'runtyp': 'energy'}
         self.basis = {'gbasis': 'sto', 'ngauss': '3'}
         self.statpt = {'opttol': '0.0001', 'nstep': '20', }
         self.system = {'mwords': '30'}
-        self.cis = {'nstate': '1'}
+        self.cis = {'nstate': '1'}"""
 
         #  Todo: rewrite this
-        for configname in ('contrl', 'basis', 'statpt', 'system', 'cis'):
-            dct = getattr(self, configname)
-            dct.update(options.get(configname, {}))
+#        for configname in ('contrl', 'basis', 'statpt', 'system', 'cis'):
+        for (category_name, categoptions) in options.items():
+            if category_name in self.options:
+                self.options[category_name].update(categoptions)
+            else:
+                self.options[categorty_name]=categoptions
+            #dct = getattr(self, configname)
+            #dct.update(options.get(configname, {}))
+
+        if reset:
+            self.reset()
+
+    def discover_scratch_folders(self):
+        scratches = {}
+        regexpstring = re.compile(r"^\s*set\s((USER)?SCR)=(.*)")
+        command = fr"grep -Pi '^\s*set\s(USER)?SCR=' {self.rungms}"
+        with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, text=True) as coprd:
+            returncode = coprd.wait()
+            for line in coprd.stdout:
+                match = regexpstring.match(line.rstrip())
+                mgrps = match.groups()
+                if mgrps[0] not in scratches:
+                    scratches[mgrps[0]] = os.path.expandvars(mgrps[2])
+        return scratches
 
     def reset(self):
-        killproc = subprocess.run("pkill gamess", shell=True)
+        subprocess.run("pkill gamess", shell=True)
         scratches = self.discover_scratch_folders()
-        #delcmd = "rm -rf /scr1/lucioric/* /home/lucioric/gamess/gamess/scr/*"
+        # delcmd = "rm -rf /scr1/lucioric/* /home/lucioric/gamess/gamess/scr/*"
         delcmd = "rm -rf {0}".format(" ".join(f"{pth}/*" for pth in scratches.values()))
         delproc = subprocess.run(delcmd, shell=True)
         delproc.check_returncode()
+
+    def send_report_e_mail(self, num_last_lines, email_configuration, a_priori_exception=None):
+        lastlinesrun = subprocess.run(f"tail -n {num_last_lines} {self.gamout}", shell=True,
+                                      stdout=subprocess.PIPE, text=True)
+        logger.info(f"GAMESS last {num_last_lines} lines: {lastlinesrun.stdout}")
+        if a_priori_exception is not None:
+            error = a_priori_exception
+            which = "error"
+            email_body = email_configuration[which]["body"].format(gamess=self,
+                error=error, last_lines=lastlinesrun.stdout)
+        else:
+            error = self.completed_gamess.stderr
+            if error:
+                which = "fail"
+                email_body = email_configuration[which]["body"].format(gamess=self,
+                    error_message=error, last_lines=lastlinesrun.stdout)
+            else:
+                which = "success"
+                email_body = email_configuration[which]["body"].format(gamess=self,
+                    last_lines=lastlinesrun.stdout)
+        email.smtplib_email(email_body, email_configuration[which]["receivers"],
+            email_configuration[which]["subject"], email_configuration["smtp"])
+
     def parse_gamout(self, gamout, mol):
         err_re = re.compile('^( \*\*\*|Error:)')
         eng_re = re.compile('TOTAL ENERGY =(.*)\n')
@@ -128,56 +185,31 @@ class Gamess:
         else:
             return nmol
 
-    def exec_rungms(self, mol):
-        gamin = self.write_file(mol)
-        gamout = self.tempdir + "/" + self.jobname + ".out"
-        #  exec rungms
-        os.chdir(self.tempdir)
-        os.system("%s %s> %s  2> /dev/null" % (self.rungms, self.jobname, gamout))
-
-        new_mol = self.parse_gamout(gamout, mol)
-
-        os.chdir(self.cwd)
-        if not self.debug:
-            os.unlink(gamin)
-            os.unlink(gamout)
-
-        return new_mol
-
-    def discover_scratch_folders(self):
-        scratches = {}
-        regexpstring = re.compile(r"^\s*set\s((USER)?SCR)=(.*)")
-        command = fr"grep -Pi '^\s*set\s(USER)?SCR=' {self.rungms}"
-        with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, text=True) as coprd:
-            returncode = coprd.wait()
-            for line in coprd.stdout:
-                match = regexpstring.match(line.rstrip())
-                mgrps = match.groups()
-                if mgrps[0] not in scratches:
-                    scratches[mgrps[0]] = os.path.expandvars(mgrps[2])
-        return scratches
-    def run_input(self, gamin, gamout):
+    def run_input(self, gamin, jobname, gamout):
         """"""
+        self.jobname = jobname
+        self.gamin = gamin
+        self.gamout = gamout
         command = "%s %s %s %i > %s" % (self.rungms, gamin, self.executable_num,
             self.num_cores, gamout)
-        self.starttime = datetime.datetime.now()
+        self.start_time = datetime.datetime.now()
         logger.info(f"Executing {command}")
-        completed_gamess = subprocess.run(command, shell=True)
-        self.endtime = datetime.datetime.now()
-        logger.info(f"Status code: {completed_gamess.returncode}")
-        if completed_gamess.returncode!=0:
-            logger.error("Gamess error: {0}".format(completed_gamess.stderr))
+        self.completed_gamess = subprocess.run(command, shell=True)
+        self.end_time = datetime.datetime.now()
+        self.elapsed_time = self.end_time - self.start_time
+        logger.info(f"Status code: {self.completed_gamess.returncode}")
+        if self.completed_gamess.returncode != 0:
+            logger.error("Gamess error: {0}".format(self.completed_gamess.stderr))
         #new_mol = self.parse_gamout(gamout)
 
         #$os.chdir(self.cwd)
         #if not self.debug:
         #    os.unlink(gamin)
         #    os.unlink(gamout)
-        return completed_gamess.returncode
 
     def run(self, mol, use_rungms=False):
         self.jobname = randstr(6)
+        # the self properties self.gamin and self.gamout will be assigned to by the next line
         new_mol = self.exec_rungms(mol) if use_rungms else self.py_rungms(mol)
         return new_mol
 
@@ -195,7 +227,7 @@ class Gamess:
         return header
 
     def print_section(self, pref):
-        d = getattr(self, pref)
+        d = self.options[pref]
         section = " ${} ".format(pref)
         for k, v in d.items():
             section += "{}={} ".format(k, v)
@@ -225,46 +257,66 @@ class Gamess:
 
     def __del__(self):
         if not self.debug:
+            logger.info(f"deleting tempdir {self.tempdir}")
             rmtree(self.tempdir)
 
     def basis_set(self, basis_type):
         basis_type = basis_type.upper()
         if basis_type in ["STO3G", "STO-3G"]:
-            self.basis = {'gbasis': 'sto', 'ngauss': '3'}
+            self.options['basis'] = {'gbasis': 'sto', 'ngauss': '3'}
         elif basis_type in ["321G", "3-21G"]:
-            self.basis = {'gbasis': 'N21', 'ngauss': '3'}
+            self.options['basis'] = {'gbasis': 'N21', 'ngauss': '3'}
         elif basis_type in ["631G", "6-31G"]:
-            self.basis = {'gbasis': 'N31', 'ngauss': '6'}
+            self.options['basis'] = {'gbasis': 'N31', 'ngauss': '6'}
         elif basis_type in ["6311G", "6-311G"]:
-            self.basis = {'gbasis': 'N311', 'ngauss': '6'}
+            self.options['basis'] = {'gbasis': 'N311', 'ngauss': '6'}
         elif basis_type in ["631G*", "6-31G*", "6-31G(D)", "631G(D)"]:
-            self.basis = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1'}
+            self.options['basis'] = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1'}
         elif basis_type in ["631G**", "6-31G**", "631GDP", "6-31G(D,P)", "631G(D,P)"]:
-            self.basis = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1'}
+            self.options['basis'] = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1'}
         elif basis_type in ["631+G**", "6-31+G**", "631+GDP", "6-31+G(D,P)", "631+G(D,P)"]:
-            self.basis = {'gbasis': 'n31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1', 'diffsp': '.t.', }
-        elif basis_type in["AM1"]:
-            self.basis = {'gbasis': 'am1'}
-        elif basis_type in["PM3"]:
-            self.basis = {'gbasis': 'pm3'}
-        elif basis_type in["MNDO"]:
-            self.basis = {'gbasis': 'mndo'}
+            self.options['basis'] = {'gbasis': 'n31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1', 'diffsp': '.t.', }
+        elif basis_type in ["AM1"]:
+            self.options['basis'] = {'gbasis': 'am1'}
+        elif basis_type in ["PM3"]:
+            self.options['basis'] = {'gbasis': 'pm3'}
+        elif basis_type in ["MNDO"]:
+            self.options['basis'] = {'gbasis': 'mndo'}
         else:
-            print("basis type not found")
-        return self.basis
+            logger.error("basis type not found")
+        return self.options['basis']
 
     def run_type(self, runtype):
-        self.contrl['runtyp'] = runtype
+        self.options['contrl']['runtyp'] = runtype
 
     def scf_type(self, scftype):
-        self.contrl['scftyp'] = scftype
+        self.options['contrl']['scftyp'] = scftype
+
+    def exec_rungms(self, mol):
+        self.gamin = self.write_file(mol)
+        self.gamout = self.tempdir + "/" + self.jobname + ".out"
+        #  exec rungms
+        #os.chdir(self.tempdir)
+        cmd = "%s %s> %s  2> /dev/null" % (self.rungms, self.jobname, self.gamout)
+        logger.info(f"Executeing exec_rungms with command {cmd}")
+        self.completed_gamess = subprocess.run(cmd, shell=True, cwd=self.tempdir)
+        #os.system("%s %s> %s  2> /dev/null" % (self.rungms, self.jobname, self.gamout))
+
+        new_mol = self.parse_gamout(self.gamout, mol)
+
+        #os.chdir(self.cwd)
+        if not self.debug:
+            os.unlink(self.gamin)
+            os.unlink(self.gamout)
+
+        return new_mol
 
     def py_rungms(self, mol):
-        gamin = os.path.join(self.tempdir, self.jobname + ".F05")
-        with open(gamin, "w") as f:
+        self.gamin = os.path.join(self.tempdir, self.jobname + ".F05")
+        with open(self.gamin, "w") as f:
             f.write(self.input(mol))
 
-        gamout = os.path.join(self.tempdir, self.jobname + ".out")
+        self.gamout = os.path.join(self.tempdir, self.jobname + ".out")
         gamess_path = self.gamess_path
 
         ddikick = os.path.join(gamess_path, "ddikick.x")
@@ -278,7 +330,7 @@ class Gamess:
 
         hostname = socket.gethostname()
 
-        setenv_data = [
+        setenv_data = (
             (" MAKEFP", "efp"), ("GAMMA", "gamma"), ("TRAJECT", "trj"),
             ("RESTART", "rst"), ("  PUNCH", "dat"), ("  INPUT", "F05"),
             (" AOINTS", "F08"), (" MOINTS", "F09"), ("DICTNRY", "F10"),
@@ -309,7 +361,7 @@ class Gamess:
             (" GMCRM2", "F91"), (" GMCRM1", "F92"), (" GMCR00", "F93"),
             (" GMCRP1", "F94"), (" GMCRP2", "F95"), (" GMCVEF", "F96"),
             (" GMCDIN", "F97"), (" GMC2SZ", "F98"), (" GMCCCS", "F99")
-        ]
+        )
 
         for e in setenv_data:
             os.environ[e[0].strip()] = os.path.join(self.tempdir, self.jobname + "." + e[1])
@@ -320,15 +372,18 @@ class Gamess:
         os.environ["NUCBAS"] = "/dev/null"
 
         exec_string = "%s %s %s -ddi 1 1 %s -scr %s > %s" % \
-            (ddikick, gamess, self.jobname, hostname, self.tempdir, gamout)
-        os.system(exec_string)
+            (ddikick, gamess, self.jobname, hostname, self.tempdir, self.gamout)
 
-        new_mol = self.parse_gamout(gamout, mol)
+        logger.info(f"Executeing py_rungms with command {exec_string}")
+        self.completed_gamess = subprocess.run(exec_string, shell=True)
+        #os.system(exec_string)
+
+        new_mol = self.parse_gamout(self.gamout, mol)
 
         os.chdir(self.cwd)
         if not self.debug:
-            os.unlink(gamin)
-            os.unlink(gamout)
+            os.unlink(self.gamin)
+            os.unlink(self.gamout)
 
         return new_mol
 

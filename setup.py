@@ -26,5 +26,5 @@ setup(name='pygamess',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests', 'docs']),
       include_package_data=True,
       zip_safe=False,
-      requires=['rdkit']
+      requires=['rdkit', 'ruamel.YAML']
       )
