@@ -5,8 +5,9 @@ setup.py
 examples/CID_674.sdf
 examples/ethane.mol
 pygamess/__init__.py
+pygamess/__main__.py
+pygamess/email.py
 pygamess/gamess.py
-pygamess/util.py
 pygamess.egg-info/PKG-INFO
 pygamess.egg-info/SOURCES.txt
 pygamess.egg-info/dependency_links.txt
