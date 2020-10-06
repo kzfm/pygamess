@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import sys
 import os
 
-version = '0.4.1.1'
+version = '0.5.0'
 
 long_description = open("README.rst").read()
 
@@ -10,6 +10,7 @@ setup(name='pygamess',
       version=version,
       description="GAMESS wrapper for Python",
       long_description=long_description,
+      long_description_content_type='text/x-rst',
       classifiers=[
         'License :: OSI Approved :: MIT License',
         'Topic :: Scientific/Engineering :: Chemistry',

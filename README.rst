@@ -6,13 +6,10 @@
 
 Requirements
 ------------
-* Python 2.6 or later (not support 3.x)
+* Python 3.7 or later (pygamess <0.5 only support Python2)
 * RDKit
 * GAMESS
-
-Features
---------
-* nothing
+* ruamel.YAML
 
 Setup
 -----
@@ -23,6 +20,12 @@ Setup
 set GAMESS_HOME environment in your .bashrc::
 
     $ export GAMESS_HOME=/usr/local/gamess
+
+Test
+-----
+::
+
+    $ pytest
 
 Basic Usage
 -----------
@@ -66,8 +69,8 @@ Change run_type::
     >>> optimized_mol.GetProp("total_energy")
     '-78.306179626599999'
 
-change basis-sets
-~~~~~~~~~~~~~~~~~
+changing basis-sets
+~~~~~~~~~~~~~~~~~~~
 
 Change basis set::
 
@@ -119,8 +122,13 @@ use input method::
 History
 -------
 
+0.5.0 (2020-09-13)
+~~~~~~~~~~~~~~~~~~~~
+
+* Support Python3
+
 0.4.1.1 (2017-09-16)
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 * Update Readme
 

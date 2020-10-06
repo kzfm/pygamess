@@ -37,7 +37,7 @@ class Gamess:
     def __init__(self, gamess_path=None, rungms_suffix='', executable_num='00',
         num_cores=None, reset=False, **options):
         self.tempdir = mkdtemp()
-        self.debug = os.environ.get('debug', False)
+        self.debug = os.environ.get('PYGAMESS_DEBUG', False)
         self.executable_num = executable_num
         self.err_lines = 10
         if num_cores is None:
@@ -97,7 +97,7 @@ class Gamess:
             if category_name in self.options:
                 self.options[category_name].update(categoptions)
             else:
-                self.options[categorty_name]=categoptions
+                self.options[category_name]=categoptions
             #dct = getattr(self, configname)
             #dct.update(options.get(configname, {}))
 
@@ -218,10 +218,10 @@ class Gamess:
         header = "{}{}{}".format(self.print_section('contrl'),
                                  self.print_section('basis'),
                                  self.print_section('system'))
-        if self.contrl['runtyp'] == 'optimize':
+        if self.options['contrl']['runtyp'] == 'optimize':
             header += self.print_section('statpt')
 
-        if self.contrl.get('citype', None) == 'cis':
+        if self.options['contrl'].get('citype', None) == 'cis':
             header += self.print_section('cis')
 
         return header
@@ -320,6 +320,7 @@ class Gamess:
         gamess_path = self.gamess_path
 
         ddikick = os.path.join(gamess_path, "ddikick.x")
+
         if not os.path.isfile(ddikick):
             raise IOError("ddikick not found")
 
@@ -366,7 +367,13 @@ class Gamess:
         for e in setenv_data:
             os.environ[e[0].strip()] = os.path.join(self.tempdir, self.jobname + "." + e[1])
 
-        os.environ["ERICFMT"] = os.path.join(gamess_path, "ericfmt.dat")
+        if os.path.exists(os.path.join(gamess_path, "ericfmt.dat")):
+            os.environ["ERICFMT"] = os.path.join(gamess_path, "ericfmt.dat")
+        elif os.path.exists(os.path.join(gamess_path, "auxdata", "ericfmt.dat")):
+            os.environ["ERICFMT"] = os.path.join(gamess_path, "auxdata", "ericfmt.dat")
+        else:
+            raise IOError("ericfmt.dat not found")
+
         os.environ["MCPPATH"] = os.path.join(gamess_path, "mcpdata")
         os.environ["EXTBAS"] = "/dev/null"
         os.environ["NUCBAS"] = "/dev/null"
@@ -380,7 +387,7 @@ class Gamess:
 
         new_mol = self.parse_gamout(self.gamout, mol)
 
-        os.chdir(self.cwd)
+        #os.chdir(self.cwd)
         if not self.debug:
             os.unlink(self.gamin)
             os.unlink(self.gamout)
