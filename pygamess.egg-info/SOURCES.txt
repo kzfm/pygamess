@@ -8,6 +8,7 @@ pygamess/__init__.py
 pygamess/__main__.py
 pygamess/email.py
 pygamess/gamess.py
+pygamess/gamout_parser.py
 pygamess.egg-info/PKG-INFO
 pygamess.egg-info/SOURCES.txt
 pygamess.egg-info/dependency_links.txt

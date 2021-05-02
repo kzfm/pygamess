@@ -13,8 +13,10 @@ import logging
 import socket
 import re
 import os
+from .gamout_parser import gparse
 
-logging.basicConfig(level=logging.INFO)  # Configures logging to level INFO if the logging has not been configured
+logging.basicConfig(level=logging.WARNING)  # Configures logging to level INFO if the logging has not been configured
+#logging.basicConfig(level=logging.DEBUG)  # Configures logging to level INFO if the logging has not been configured
 logger = logging.getLogger(__name__)
 
 
@@ -44,9 +46,7 @@ class Gamess:
             self.num_cores = multiprocessing.cpu_count()
         else:
             self.num_cores = num_cores
-
-        if self.debug:
-            print("tmpdir", self.tempdir)
+        logger.debug("tmpdir: {0}".format(self.tempdir))
 
         # search gamess_path
         # 1. find environ
@@ -82,14 +82,9 @@ class Gamess:
             'contrl': {'scftyp': 'rhf', 'runtyp': 'energy'},
             'basis': {'gbasis': 'sto', 'ngauss': '3'},
             'statpt': {'opttol': '0.0001', 'nstep': '20'},
-            'system': {'mwords': '30'},
+            'system': {'mwords': '100'},
             'cis': {'nstate': '1'}
         }
-        """self.contrl = {'scftyp': 'rhf', 'runtyp': 'energy'}
-        self.basis = {'gbasis': 'sto', 'ngauss': '3'}
-        self.statpt = {'opttol': '0.0001', 'nstep': '20', }
-        self.system = {'mwords': '30'}
-        self.cis = {'nstate': '1'}"""
 
         #  Todo: rewrite this
 #        for configname in ('contrl', 'basis', 'statpt', 'system', 'cis'):
@@ -149,41 +144,35 @@ class Gamess:
             email_configuration[which]["subject"], email_configuration["smtp"])
 
     def parse_gamout(self, gamout, mol):
-        err_re = re.compile('^( \*\*\*|Error:)')
-        eng_re = re.compile('TOTAL ENERGY =(.*)\n')
-        coord_re = re.compile('COORDINATES OF ALL ATOMS ARE (.*?)------------\n(.*?)\n\n', re.DOTALL)
-        #if self.basis['gbasis'] in ['am1', 'pm3', 'mndo']:
-        #    eng_re = re.compile(' FINAL .+ ENERGY IS')
-
-        err_message = ""
-        err_count = 0
-        total_energy = 0
+        result = gparse(gamout)
+        if not result.success:
+            raise GamessError(result.error_message)
 
         nmol = Chem.Mol(mol)
         conf = nmol.GetConformer(0)
+        nmol.SetDoubleProp("total_energy", result.total_energy)
+        nmol.SetDoubleProp("HOMO", result.HOMO)
+        nmol.SetDoubleProp("LUMO", result.LUMO)
+        nmol.SetDoubleProp("nHOMO", result.nHOMO)
+        nmol.SetDoubleProp("nLUMO", result.nLUMO)
+        nmol.SetDoubleProp("dipole_moment", result.dipole_moment[3])
+        nmol.SetDoubleProp("dx", result.dipole_moment[0])
+        nmol.SetDoubleProp("dy", result.dipole_moment[1])
+        nmol.SetDoubleProp("dz", result.dipole_moment[2])
+        nmol.SetProp("orbital_energies", " ".join([str(v) for v in result.orbital_energies]))
 
-        out_str = open(gamout, "r").read()
-        for m in eng_re.finditer(out_str):
-            nmol.SetDoubleProp("total_energy", float(m.group(1).strip()))
+        for i, cds in enumerate(result.coordinates):
+            conf.SetAtomPosition(i, cds)
+        
+        for i, c in enumerate(zip(result.mulliken_charges, result.lowdin_charges)):
+            atom = nmol.GetAtomWithIdx(i)
+            atom.SetDoubleProp("mulliken_charge", c[0])
+            atom.SetDoubleProp("lowdin_charge", c[1])
+        Chem.CreateAtomDoublePropertyList(nmol, "mulliken_charge")
+        Chem.CreateAtomDoublePropertyList(nmol, "lowdin_charge")
 
-        for m in coord_re.finditer(out_str):
-            atom_idx = 0
-            for l in m.group(2).split("\n"):
-                coord = l.split()
-                cds = [float(coord[2]), float(coord[3]), float(coord[4])]
-                conf.SetAtomPosition(atom_idx, cds)
-                atom_idx += 1
-
-        #         if err_re.match(l):
-        #             err_count = self.err_lines
-        #             if err_count > 0:
-        #                 err_message += l
-        #             err_count -= 1
-
-        if len(err_message) > 0:
-            raise GamessError(err_message)
-        else:
-            return nmol
+        result.mol = nmol
+        return result
 
     def run_input(self, gamin, jobname, gamout):
         """"""
@@ -200,12 +189,6 @@ class Gamess:
         logger.info(f"Status code: {self.completed_gamess.returncode}")
         if self.completed_gamess.returncode != 0:
             logger.error("Gamess error: {0}".format(self.completed_gamess.stderr))
-        #new_mol = self.parse_gamout(gamout)
-
-        #$os.chdir(self.cwd)
-        #if not self.debug:
-        #    os.unlink(gamin)
-        #    os.unlink(gamout)
 
     def run(self, mol, use_rungms=False):
         self.jobname = randstr(6)
@@ -215,9 +198,14 @@ class Gamess:
 
     def print_header(self):
         """ gamess header"""
-        header = "{}{}{}".format(self.print_section('contrl'),
-                                 self.print_section('basis'),
-                                 self.print_section('system'))
+        # self.contrl['icharg'] = mol.GetFormalCharge()
+        # TODO: cope with the charge and the multiplicity of the compound
+        header = "{}{}{}{}".format(
+            self.print_section('contrl'),
+            self.print_section('pcm'),
+            self.print_section('basis'),
+            self.print_section('system'))
+
         if self.options['contrl']['runtyp'] == 'optimize':
             header += self.print_section('statpt')
 
@@ -227,15 +215,16 @@ class Gamess:
         return header
 
     def print_section(self, pref):
-        d = self.options[pref]
-        section = " ${} ".format(pref)
-        for k, v in d.items():
-            section += "{}={} ".format(k, v)
-        section += "$end\n"
+        section = ""
+        if pref in self.options:
+            d = self.options[pref]
+            section = " ${} ".format(pref)
+            for k, v in d.items():
+                section += "{}={} ".format(k, v)
+            section += "$end\n"
         return section
 
     def atom_section(self, mol):
-        # self.contrl['icharg'] = mol.GetFormalCharge()
         conf = mol.GetConformer(0)
         section = ""
         for atom in mol.GetAtoms():
@@ -260,7 +249,7 @@ class Gamess:
             logger.info(f"deleting tempdir {self.tempdir}")
             rmtree(self.tempdir)
 
-    def basis_set(self, basis_type):
+    def basis_sets(self, basis_type):
         basis_type = basis_type.upper()
         if basis_type in ["STO3G", "STO-3G"]:
             self.options['basis'] = {'gbasis': 'sto', 'ngauss': '3'}
@@ -284,13 +273,32 @@ class Gamess:
             self.options['basis'] = {'gbasis': 'mndo'}
         else:
             logger.error("basis type not found")
-        return self.options['basis']
+        logger.info(self.options['basis'])
 
     def run_type(self, runtype):
         self.options['contrl']['runtyp'] = runtype
 
+    def dft_type(self, dfttype):
+        self.options['contrl']['dfttyp'] = dfttype
+
     def scf_type(self, scftype):
         self.options['contrl']['scftyp'] = scftype
+    
+    def mul_type(self, multype):
+        self.options['contrl']['multype'] = multype
+
+    def icharge_type(self, chargetype):
+        self.options['contrl']['icharg'] = chargetype
+
+    def pcm_type(self, solvent, ief=-10):
+        if solvent == "gas":
+            if "pcm" in self.options:
+                self.options.pop("pcm")
+        else:
+            if "pcm" not in self.options:
+                self.options['pcm'] = {}
+            self.options['pcm']['solvnt'] = solvent
+            self.options['pcm']['ief'] = ief
 
     def exec_rungms(self, mol):
         self.gamin = self.write_file(mol)
@@ -302,14 +310,14 @@ class Gamess:
         self.completed_gamess = subprocess.run(cmd, shell=True, cwd=self.tempdir)
         #os.system("%s %s> %s  2> /dev/null" % (self.rungms, self.jobname, self.gamout))
 
-        new_mol = self.parse_gamout(self.gamout, mol)
+        result = self.parse_gamout(self.gamout, mol)
 
         #os.chdir(self.cwd)
         if not self.debug:
             os.unlink(self.gamin)
             os.unlink(self.gamout)
 
-        return new_mol
+        return result
 
     def py_rungms(self, mol):
         self.gamin = os.path.join(self.tempdir, self.jobname + ".F05")
@@ -378,6 +386,10 @@ class Gamess:
         os.environ["EXTBAS"] = "/dev/null"
         os.environ["NUCBAS"] = "/dev/null"
 
+        if "pcm" in self.options:
+            os.environ["PCMDATA"] = os.path.join(self.tempdir, "{}.F26".format(self.jobname))
+            os.environ["PCMINTS"] = os.path.join(self.tempdir, "{}.F27".format(self.jobname))
+
         exec_string = "%s %s %s -ddi 1 1 %s -scr %s > %s" % \
             (ddikick, gamess, self.jobname, hostname, self.tempdir, self.gamout)
 
@@ -385,22 +397,18 @@ class Gamess:
         self.completed_gamess = subprocess.run(exec_string, shell=True)
         #os.system(exec_string)
 
-        new_mol = self.parse_gamout(self.gamout, mol)
+        result = self.parse_gamout(self.gamout, mol)
 
-        #os.chdir(self.cwd)
+        
         if not self.debug:
             os.unlink(self.gamin)
             os.unlink(self.gamout)
 
-        return new_mol
+        return result
 
 
 if __name__ == '__main__':
     g = Gamess()
     mol = Chem.MolFromMolFile("examples/ethane.mol", removeHs=False)
-    try:
-        newmol = g.run(mol)
-    except GamessError as gerr:
-        logger.error(f"GamesError: {gerr.value}")
-
-    print(newmol.GetProp("total_energy"))
+    r = g.run(mol)
+    print(r.mol.GetProp("total_energy"))
