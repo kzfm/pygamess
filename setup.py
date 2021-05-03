@@ -2,15 +2,13 @@ from setuptools import setup, find_packages
 import sys
 import os
 
-version = '0.6.0'
-
-long_description = open("README.rst").read()
+version = '0.6.1'
 
 setup(name='pygamess',
       version=version,
       description="GAMESS wrapper for Python",
-      long_description=long_description,
-      long_description_content_type='text/x-rst',
+      long_description=open("README.md").read(),
+      long_description_content_type='text/markdown',
       classifiers=[
         'License :: OSI Approved :: MIT License',
         'Topic :: Scientific/Engineering :: Chemistry',

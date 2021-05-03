@@ -1,50 +1,40 @@
-==========
- pygamess
-==========
+# pygamess
 
-`pygamess` is a GAMESS wrapper for Python
+<span class="title-ref">pygamess</span> is a GAMESS wrapper for Python
 
+## Requirements
 
-Requirements
-------------
-* Python 3.7 or later (pygamess <0.5 supports only Python2)
-* RDKit >= 2020.03.5
-* GAMESS
-* ruamel.YAML
+-   Python 3.7 or later (pygamess &lt;0.5 supports only Python2)
+-   RDKit &gt;= 2020.03.5
+-   GAMESS
+-   ruamel.YAML
 
-Setup
------
-::
+## Setup
 
     $ pip install pygamess
 
-set GAMESS_HOME environment in your .bashrc or .zshrc::
+set GAMESS\_HOME environment in your .bashrc or .zshrc:
 
     $ export GAMESS_HOME=/usr/local/gamess
 
-Test
------
-::
+## Test
 
     $ pytest
 
-Basic Usage
------------
+## Basic Usage
 
-Single point calculation
-~~~~~~~~~~~~~~~~~~~~~~~~
-::
+### Single point calculation
 
     >>> from pygamess import Gamess
     >>> from rdkit import Chem
-    >>> from pygamess_utils import rdkit_optimize
+    >>> from pygamess.utils import rdkit_optimize
     >>> m = rdkit_optimize("CCO")
     >>> g = Gamess()
     >>> r = g.run(m)
     >>> r.total_energy
     -152.127991054
 
-Or use rdkit directly::
+Or use rdkit directly:
 
     >>> from pygamess import Gamess
     >>> from rdkit import Chem
@@ -60,8 +50,8 @@ Or use rdkit directly::
     >>> r.total_energy
     -152.1279910526
 
-The GamessOut object(r) contains the results of the GAMESS calculation 
-and the RDKit Chem object with the calculation results::
+The GamessOut object(r) contains the results of the GAMESS calculation
+and the RDKit Chem object with the calculation results:
 
     >>> r.total_energy
     -152.1279910526
@@ -82,7 +72,8 @@ and the RDKit Chem object with the calculation results::
     >>> r.lowdin_charges
     [-0.089262, 0.062464, -0.212689, 0.022024, 0.02752, 0.031644, 0.010235, 0.026611, 0.121453]
 
-The RDKit Chem object has the same information to store these data into SDF::
+The RDKit Chem object has the same information to store these data into
+SDF:
 
     >>> r.mol
     <rdkit.Chem.rdchem.Mol object at 0x7ffd48217f30>
@@ -109,24 +100,23 @@ The RDKit Chem object has the same information to store these data into SDF::
     >>> for a in r.mol.GetAtoms():
     ...   print("{}:\t{:.4f}\t{:.4f}".format(a.GetSymbol(), float(a.GetProp("mulliken_charge")), float(a.GetProp("lowdin_charge"))))
     ... 
-    C:	-0.1712	-0.0893
-    C:	0.0244	0.0625
-    O:	-0.2982	-0.2127
-    H:	0.0496	0.0220
-    H:	0.0558	0.0275
-    H:	0.0619	0.0316
-    H:	0.0427	0.0102
-    H:	0.0611	0.0266
-    H:	0.1738	0.1215
+    C:  -0.1712 -0.0893
+    C:  0.0244  0.0625
+    O:  -0.2982 -0.2127
+    H:  0.0496  0.0220
+    H:  0.0558  0.0275
+    H:  0.0619  0.0316
+    H:  0.0427  0.0102
+    H:  0.0611  0.0266
+    H:  0.1738  0.1215
 
+### Geometry optimization
 
-Geometry optimization
-~~~~~~~~~~~~~~~~~~~~~
-
-Set the run_type as 'optimize'. This optimization process updates the coordinates of the molecule::
+Set the run\_type as 'optimize'. This optimization process updates the
+coordinates of the molecule:
 
     >>> from pygamess import Gamess
-    >>> from pygamess_utils import rdkit_optimize
+    >>> from pygamess.utils import rdkit_optimize
     >>> m = rdkit_optimize("CCO")
     >>> g = Gamess()
     >>> g.run_type('optimize')
@@ -160,13 +150,12 @@ Set the run_type as 'optimize'. This optimization process updates the coordinate
     [-0.51450285  1.49751073  0.00304491]
     [-1.4921073  -1.13653094 -0.2782105 ]
 
-Changing basis sets
-~~~~~~~~~~~~~~~~~~~
+### Changing basis sets
 
-Use basis_sets method::
+Use basis\_sets method:
 
     >>> from pygamess import Gamess
-    >>> from pygamess_utils import rdkit_optimize
+    >>> from pygamess.utils import rdkit_optimize
     >>> m = rdkit_optimize("CCO")
     >>> g = Gamess()
     >>> g.run_type = "optimize"
@@ -185,19 +174,18 @@ Use basis_sets method::
     >>> g.run(m).total_energy
     -154.0843823698
 
-Or edit the basis attribute directly::
+Or edit the basis attribute directly:
 
     >>> g.options['basis'] = {'gbasis': 'sto', 'ngauss': '3'}
     >>> g.run(m).total_energy
     -152.127991054
 
-DFT calculation
-~~~~~~~~~~~~~~~
+### DFT calculation
 
-B3LYP/6-31G*::
+B3LYP/6-31G\*:
 
     >>> from pygamess import Gamess
-    >>> from pygamess_utils import rdkit_optimize
+    >>> from pygamess.utils import rdkit_optimize
     >>> m = rdkit_optimize("CCO")
     >>> g = Gamess()
     >>> g.run_type("optimize")
@@ -206,11 +194,10 @@ B3LYP/6-31G*::
     >>> g.run(m).total_energy
     -154.9387962055
 
-
-M062X/6-31G**::
+M062X/6-31G\*\*:
 
     >>> from pygamess import Gamess
-    >>> from pygamess_utils import rdkit_optimize
+    >>> from pygamess.utils import rdkit_optimize
     >>> m = rdkit_optimize("CCO")
     >>> g = Gamess()
     >>> g.run_type("optimize")
@@ -219,13 +206,13 @@ M062X/6-31G**::
     >>> g.run(m).total_energy
     -154.9636095207
 
-PCM calculation
-~~~~~~~~~~~~~~~
+### PCM calculation
 
-Pygamess currently only supports CPCM, but will support IEFPCM in the future::
+Pygamess currently only supports CPCM, but will support IEFPCM in the
+future:
 
     >>> from pygamess import Gamess
-    >>> from pygamess_utils import rdkit_optimize
+    >>> from pygamess.utils import rdkit_optimize
     >>> m = rdkit_optimize("CCO")
     >>> g = Gamess()
     >>> g.basis_sets("6-31G*")
@@ -249,13 +236,12 @@ Pygamess currently only supports CPCM, but will support IEFPCM in the future::
     >>> r.total_interacion
     -0.0076237032
 
-Printing GAMESS INPUT
-~~~~~~~~~~~~~~~~~~~~~
+### Printing GAMESS INPUT
 
-use input method::
+use input method:
 
     >>> from pygamess import Gamess
-    >>> from pygamess_utils import rdkit_optimize
+    >>> from pygamess.utils import rdkit_optimize
     >>> m = rdkit_optimize("CO")
     >>> g = Gamess()
     >>> print(g.input(m))
@@ -273,16 +259,16 @@ use input method::
     H      1.0      1.5565636556    0.0841975943    0.1652431920 
     $END
 
-Debugging pygamess
-~~~~~~~~~~~~~~~~~~
+### Debugging pygamess
 
-set PYGAMESS_DEBUG environment::
+set PYGAMESS\_DEBUG environment:
 
     $ export PYGAMESS_DEBUG=1
 
-This won't remove the all files generated by the GAMESS executable, including the output files.
+This won't remove the all files generated by the GAMESS executable,
+including the output files.
 
-set logger level::
+set logger level:
 
     >>> from pygamess import Gamess, logger
     >>> import logging
@@ -290,77 +276,71 @@ set logger level::
     >>> g = Gamess()
     DEBUG:pygamess.gamess:tmpdir: /var/folders/gm/4tcnnyqd09d2jt7p0dtvr28m0000gn/T/tmp889j9c7e
 
-History
--------
+## History
 
-0.6.0 (2021-05-02)
-~~~~~~~~~~~~~~~~~~~~
+### 0.6.1 (2021-05-03)
 
-* Support DFT calculation
-* Support PCM calculation (C-PCM only)
-* Improve the parser
-* Support logger levels
-* Change method name from "basis_set" to "basis_sets"
+- Fix bug (ModuleNotFoundError: No module named 'pygamess_utils')
+- Change README format (rst -> md)
 
-0.5.0 (2020-09-13)
-~~~~~~~~~~~~~~~~~~~~
+### 0.6.0 (2021-05-02)
 
-* Support Python3
+-   Support DFT calculation
+-   Support PCM calculation (C-PCM only)
+-   Improve the parser
+-   Support logger levels
+-   Change method name from "basis\_set" to "basis\_sets"
 
-0.4.1.1 (2017-09-16)
-~~~~~~~~~~~~~~~~~~~~
+### 0.5.0 (2020-09-13)
 
-* Update Readme
+-   Support Python3
 
-0.4.1 (2017-09-16)
-~~~~~~~~~~~~~~~~~~
+### 0.4.1.1 (2017-09-16)
 
-* Bug fix (coordinates problem)
+-   Update Readme
 
-0.4.0 (2017-09-13)
-~~~~~~~~~~~~~~~~~~
+### 0.4.1 (2017-09-16)
 
-* Change the backend library from openbabel to RDKit
+-   Bug fix (coordinates problem)
 
-0.3.0 (2012-03-31)
-~~~~~~~~~~~~~~~~~~
+### 0.4.0 (2017-09-13)
 
-* Use internal rungms (default)
-* Add basis_set method(STO-3G,3-21G,6-31G,6-311G,6-31G*,6-31G**,AM1,PM3,MNDO)
-* Constructor can accept options
-* Bug fixed (spin multiplicity)
+-   Change the backend library from openbabel to RDKit
 
-0.2.2 (2012-03-30)
-~~~~~~~~~~~~~~~~~~
+### 0.3.0 (2012-03-31)
 
-* Add charge settings
-* Change Method name (gamess_input -> input)
+-   Use internal rungms (default)
+-   Add basis\_set
+    method(STO-3G,3-21G,6-31G,6-311G,6-31G\*,6-31G\*\*,AM1,PM3,MNDO)
+-   Constructor can accept options
+-   Bug fixed (spin multiplicity)
 
-0.2.1 (2012-03-23)
-~~~~~~~~~~~~~~~~~~
+### 0.2.2 (2012-03-30)
 
-* Bug fix (multiplicity setting for pybel) 
-* Bug fix (print error when rungms exec failed)
-* Add document
+-   Add charge settings
+-   Change Method name (gamess\_input -&gt; input)
 
-0.2.0 (2012-03-06)
-~~~~~~~~~~~~~~~~~~
+### 0.2.1 (2012-03-23)
 
-* Run method accepts OBMol and Pybel-Molecule object
+-   Bug fix (multiplicity setting for pybel)
+-   Bug fix (print error when rungms exec failed)
+-   Add document
 
-0.1.2 (2011-09-23)
-~~~~~~~~~~~~~~~~~~
+### 0.2.0 (2012-03-06)
 
-* Add CIS method (and optimization)
+-   Run method accepts OBMol and Pybel-Molecule object
 
-0.1.1 (2011-08-06)
-~~~~~~~~~~~~~~~~~~
+### 0.1.2 (2011-09-23)
 
-* Update document
-* Semiempical method (AM1, PM3, MNDO)
-* Add statpt option
-* Change default error print message (10 lines)
+-   Add CIS method (and optimization)
 
-0.1 (2011-6-25)
-~~~~~~~~~~~~~~~~~~
-* First release
+### 0.1.1 (2011-08-06)
+
+-   Update document
+-   Semiempical method (AM1, PM3, MNDO)
+-   Add statpt option
+-   Change default error print message (10 lines)
+
+### 0.1 (2011-6-25)
+
+-   First release

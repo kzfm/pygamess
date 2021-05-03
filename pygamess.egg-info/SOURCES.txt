@@ -1,5 +1,5 @@
 MANIFEST.in
-README.rst
+README.md
 setup.cfg
 setup.py
 examples/CID_674.sdf
@@ -9,6 +9,8 @@ pygamess/__main__.py
 pygamess/email.py
 pygamess/gamess.py
 pygamess/gamout_parser.py
+pygamess/pygamess_utils.py
+pygamess/utils.py
 pygamess.egg-info/PKG-INFO
 pygamess.egg-info/SOURCES.txt
 pygamess.egg-info/dependency_links.txt

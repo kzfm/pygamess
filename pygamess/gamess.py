@@ -15,6 +15,7 @@ import re
 import os
 from .gamout_parser import gparse
 
+
 logging.basicConfig(level=logging.WARNING)  # Configures logging to level INFO if the logging has not been configured
 #logging.basicConfig(level=logging.DEBUG)  # Configures logging to level INFO if the logging has not been configured
 logger = logging.getLogger(__name__)
