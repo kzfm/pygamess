@@ -6,7 +6,7 @@
 
 -   Python 3.7 or later (pygamess &lt;0.5 supports only Python2)
 -   RDKit &gt;= 2020.03.5
--   GAMESS
+-   GAMESS > Jun2020R1
 -   ruamel.YAML
 
 ## Setup
@@ -26,7 +26,6 @@ set GAMESS\_HOME environment in your .bashrc or .zshrc:
 ### Single point calculation
 
     >>> from pygamess import Gamess
-    >>> from rdkit import Chem
     >>> from pygamess.utils import rdkit_optimize
     >>> m = rdkit_optimize("CCO")
     >>> g = Gamess()

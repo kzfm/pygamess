@@ -13,6 +13,7 @@ import logging
 import socket
 import re
 import os
+import platform
 from .gamout_parser import gparse
 
 
@@ -38,7 +39,7 @@ class Gamess:
     """GAMESS WRAPPER"""
 
     def __init__(self, gamess_path=None, rungms_suffix='', executable_num='00',
-        num_cores=None, reset=False, **options):
+        num_cores=None, reset=False, options={}):
         self.tempdir = mkdtemp()
         self.debug = os.environ.get('PYGAMESS_DEBUG', False)
         self.executable_num = executable_num
@@ -48,6 +49,7 @@ class Gamess:
         else:
             self.num_cores = num_cores
         logger.debug("tmpdir: {0}".format(self.tempdir))
+        logger.info("#cores: {0}".format(self.num_cores))
 
         # search gamess_path
         # 1. find environ
@@ -79,23 +81,15 @@ class Gamess:
 
         #Minimal options set. Options specified in the options arguments will be
         # merged into this options set
-        self.options = {
+        self._options = {
             'contrl': {'scftyp': 'rhf', 'runtyp': 'energy'},
             'basis': {'gbasis': 'sto', 'ngauss': '3'},
             'statpt': {'opttol': '0.0001', 'nstep': '20'},
-            'system': {'mwords': '100'},
+            'system': {'mwords': '100', 'memddi': '0'},
             'cis': {'nstate': '1'}
         }
 
-        #  Todo: rewrite this
-#        for configname in ('contrl', 'basis', 'statpt', 'system', 'cis'):
-        for (category_name, categoptions) in options.items():
-            if category_name in self.options:
-                self.options[category_name].update(categoptions)
-            else:
-                self.options[category_name]=categoptions
-            #dct = getattr(self, configname)
-            #dct.update(options.get(configname, {}))
+        self._options.update(options)
 
         if reset:
             self.reset()
@@ -207,21 +201,26 @@ class Gamess:
             self.print_section('basis'),
             self.print_section('system'))
 
-        if self.options['contrl']['runtyp'] == 'optimize':
+        if self._options['contrl']['runtyp'] == 'optimize':
             header += self.print_section('statpt')
 
-        if self.options['contrl'].get('citype', None) == 'cis':
+        if self._options['contrl'].get('citype', None) == 'cis':
             header += self.print_section('cis')
 
         return header
 
     def print_section(self, pref):
+        # A line can only be 80 characters long. Anything after that is ignored. 
         section = ""
-        if pref in self.options:
-            d = self.options[pref]
+        if pref in self._options:
+            ret_flag = True
+            d = self._options[pref]
             section = " ${} ".format(pref)
             for k, v in d.items():
                 section += "{}={} ".format(k, v)
+                if ret_flag and len(section) > 60:
+                    section += "\n"
+                    ret_flag = False
             section += "$end\n"
         return section
 
@@ -253,53 +252,57 @@ class Gamess:
     def basis_sets(self, basis_type):
         basis_type = basis_type.upper()
         if basis_type in ["STO3G", "STO-3G"]:
-            self.options['basis'] = {'gbasis': 'sto', 'ngauss': '3'}
+            self._options['basis'] = {'gbasis': 'sto', 'ngauss': '3'}
         elif basis_type in ["321G", "3-21G"]:
-            self.options['basis'] = {'gbasis': 'N21', 'ngauss': '3'}
+            self._options['basis'] = {'gbasis': 'N21', 'ngauss': '3'}
         elif basis_type in ["631G", "6-31G"]:
-            self.options['basis'] = {'gbasis': 'N31', 'ngauss': '6'}
+            self._options['basis'] = {'gbasis': 'N31', 'ngauss': '6'}
         elif basis_type in ["6311G", "6-311G"]:
-            self.options['basis'] = {'gbasis': 'N311', 'ngauss': '6'}
+            self._options['basis'] = {'gbasis': 'N311', 'ngauss': '6'}
         elif basis_type in ["631G*", "6-31G*", "6-31G(D)", "631G(D)"]:
-            self.options['basis'] = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1'}
+            self._options['basis'] = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1'}
         elif basis_type in ["631G**", "6-31G**", "631GDP", "6-31G(D,P)", "631G(D,P)"]:
-            self.options['basis'] = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1'}
+            self._options['basis'] = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1'}
         elif basis_type in ["631+G**", "6-31+G**", "631+GDP", "6-31+G(D,P)", "631+G(D,P)"]:
-            self.options['basis'] = {'gbasis': 'n31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1', 'diffsp': '.t.', }
+            self._options['basis'] = {'gbasis': 'n31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1', 'diffsp': '.true.', }
         elif basis_type in ["AM1"]:
-            self.options['basis'] = {'gbasis': 'am1'}
+            self._options['basis'] = {'gbasis': 'am1'}
         elif basis_type in ["PM3"]:
-            self.options['basis'] = {'gbasis': 'pm3'}
+            self._options['basis'] = {'gbasis': 'pm3'}
         elif basis_type in ["MNDO"]:
-            self.options['basis'] = {'gbasis': 'mndo'}
+            self._options['basis'] = {'gbasis': 'mndo'}
         else:
             logger.error("basis type not found")
-        logger.info(self.options['basis'])
+        logger.info(self._options['basis'])
 
     def run_type(self, runtype):
-        self.options['contrl']['runtyp'] = runtype
+        self._options['contrl']['runtyp'] = runtype
 
     def dft_type(self, dfttype):
-        self.options['contrl']['dfttyp'] = dfttype
+        self._options['contrl']['dfttyp'] = dfttype
 
     def scf_type(self, scftype):
-        self.options['contrl']['scftyp'] = scftype
+        self._options['contrl']['scftyp'] = scftype
     
     def mul_type(self, multype):
-        self.options['contrl']['multype'] = multype
+        self._options['contrl']['multype'] = multype
 
     def icharge_type(self, chargetype):
-        self.options['contrl']['icharg'] = chargetype
+        self._options['contrl']['icharg'] = chargetype
 
     def pcm_type(self, solvent, ief=-10):
         if solvent == "gas":
-            if "pcm" in self.options:
-                self.options.pop("pcm")
+            if "pcm" in self._options:
+                self._options.pop("pcm")
         else:
-            if "pcm" not in self.options:
-                self.options['pcm'] = {}
-            self.options['pcm']['solvnt'] = solvent
-            self.options['pcm']['ief'] = ief
+            if "pcm" not in self._options:
+                self._options['pcm'] = {}
+            self._options['pcm']['solvnt'] = solvent
+            self._options['pcm']['ief'] = ief
+
+    def options(self, options):
+        for k, v in options.items():
+            self._options[k].update(v)
 
     def exec_rungms(self, mol):
         self.gamin = self.write_file(mol)
@@ -340,59 +343,86 @@ class Gamess:
 
         hostname = socket.gethostname()
 
+        AUXDATA = os.path.join(gamess_path, "auxdata")
+        os.environ["AUXDATA"] = AUXDATA
+        os.environ["DFTBPAR"] = os.path.join(AUXDATA, "DFTB")
+        os.environ["ERICFMT"] = os.path.join(AUXDATA, "ericfmt.dat")
+        os.environ["MCPPATH"] = os.path.join(AUXDATA, "MCP")
+        os.environ["BASPATH"] = os.path.join(AUXDATA, "BASES")
+        os.environ["QUANPOL"] = os.path.join(AUXDATA, "QUANPOL")
+        os.environ["EXTBAS"] = "/dev/null"
+        os.environ["NUCBAS"] = "/dev/null"
+        os.environ["EXTCAB"] = "/dev/null"
+        os.environ["POSBAS"] = "/dev/null"
         setenv_data = (
-            (" MAKEFP", "efp"), ("GAMMA", "gamma"), ("TRAJECT", "trj"),
-            ("RESTART", "rst"), ("  PUNCH", "dat"), ("  INPUT", "F05"),
-            (" AOINTS", "F08"), (" MOINTS", "F09"), ("DICTNRY", "F10"),
-            ("DRTFILE", "F11"), ("CIVECTR", "F12"), ("CASINTS", "F13"),
-            (" CIINTS", "F14"), (" WORK15", "F15"), (" WORK16", "F16"),
-            ("CSFSAVE", "F17"), ("FOCKDER", "F18"), (" WORK19", "F19"),
-            (" DASORT", "F20"), ("DFTINTS", "F21"), ("DFTGRID", "F22"),
-            (" JKFILE", "F23"), (" ORDINT", "F24"), (" EFPIND", "F25"),
-            ("SVPWRK1", "F26"), ("SVPWRK2", "F27"), ("  MLTPL", "F28"),
-            (" MLTPLT", "F29"), (" DAFL30", "F30"), (" SOINTX", "F31"),
-            (" SOINTY", "F32"), (" SOINTZ", "F33"), (" SORESC", "F34"),
-            ("GCILIST", "F37"), ("HESSIAN", "F38"), ("QMMMTEI", "F39"),
-            ("SOCCDAT", "F40"), (" AABB41", "F41"), (" BBAA42", "F42"),
-            (" BBBB43", "F43"), (" MCQD50", "F50"), (" MCQD51", "F51"),
-            (" MCQD52", "F52"), (" MCQD53", "F53"), (" MCQD54", "F54"),
-            (" MCQD55", "F55"), (" MCQD56", "F56"), (" MCQD57", "F57"),
-            (" MCQD58", "F58"), (" MCQD59", "F59"), (" MCQD60", "F60"),
-            ("NMRINT1", "F61"), ("NMRINT2", "F62"), ("NMRINT3", "F63"),
-            ("NMRINT4", "F64"), ("NMRINT5", "F65"), ("NMRINT6", "F66"),
-            ("ELNUINT", "F67"), ("NUNUINT", "F68"), (" NUMOIN", "F69"),
-            (" GMCREF", "F70"), (" GMCO2R", "F71"), (" GMCROC", "F72"),
-            (" GMCOOC", "F73"), (" GMCCC0", "F74"), (" GMCHMA", "F75"),
-            (" GMCEI1", "F76"), (" GMCEI2", "F77"), (" GMCEOB", "F78"),
-            (" GMCEDT", "F79"), (" GMCERF", "F80"), (" GMCHCR", "F81"),
-            (" GMCGJK", "F82"), (" GMCGAI", "F83"), (" GMCGEO", "F84"),
-            (" GMCTE1", "F85"), (" GMCTE2", "F86"), (" GMCHEF", "F87"),
-            (" GMCMOL", "F88"), (" GMCMOS", "F89"), (" GMCWGT", "F90"),
-            (" GMCRM2", "F91"), (" GMCRM1", "F92"), (" GMCR00", "F93"),
-            (" GMCRP1", "F94"), (" GMCRP2", "F95"), (" GMCVEF", "F96"),
-            (" GMCDIN", "F97"), (" GMC2SZ", "F98"), (" GMCCCS", "F99")
-        )
+                ("MAKEFP", "efp"), ("GAMMA", "gamma"), ("TRAJECT", "trj"), ("RESTART", "rst"),("QMWAVE", "qmw"),("MDDIP", "dip"),
+                ("OPTHES1", "hs1"),("OPTHES2", "hs2"), ("XYZ", "xyz"),("INPUT", "F05"),("PUNCH", "dat"),("AOINTS", "F08"),
+                ("MOINTS", "F09"),("DICTNRY", "F10"),("DRTFILE", "F11"),("CIVECTR", "F12"),("CASINTS", "F13"),("CIINTS", "F14"),
+                ("WORK15", "F15"),("WORK16", "F16"),("CSFSAVE", "F17"),("FOCKDER", "F18"),("WORK19", "F19"),("DASORT", "F20"),
+                ("DIABDAT", "F21"),("DFTINTS", "F21"),("DFTGRID", "F22"),("JKFILE", "F23"),("ORDINT", "F24"),("EFPIND", "F25"),
+                ("PCMDATA", "F26"),("PCMINTS", "F27"),("SVPWRK1", "F26"),("SVPWRK2", "F27"),("COSCAV ", "F26"),("COSDATA", "cosmo"),
+                ("COSPOT ", "pot"),("MLTPL ", "F28"),("MLTPLT", "F29"),("DAFL30", "F30"),("SOINTX", "F31"),("SOINTY", "F32"),
+                ("SOINTZ", "F33"),("SORESC", "F34"),("GCILIST", "F37"),("HESSIAN", "F38"),("QMMMTEI", "F39"),("SOCCDAT", "F40"),
+                ("AABB41", "F41"),("BBAA42", "F42"),("BBBB43", "F43"),("REMD  ", "F44"),("UNV   ", "F45"),("UNPV  ", "F46"),
+                ("MCQD50", "F50"),("MCQD51", "F51"),("MCQD52", "F52"),("MCQD53", "F53"),("MCQD54", "F54"),("MCQD55", "F55"),
+                ("MCQD56", "F56"),("MCQD57", "F57"),("MCQD58", "F58"),("MCQD59", "F59"),("MCQD60", "F60"),("MCQD61", "F61"),
+                ("MCQD62", "F62"),("MCQD63", "F63"),("MCQD64", "F64"),("NMRINT1", "F61"),("NMRINT2", "F62"),("NMRINT3", "F63"),
+                ("NMRINT4", "F64"),("NMRINT5", "F65"),("NMRINT6", "F66"),("DCPHFH2", "F67"),("DCPHF21", "F68"),("ELNUINT", "F67"),
+                ("NUNUINT", "F68"),("GVVPT", "F69"),("NUMOIN ", "F69"),("NUMOCAS", "F70"),("NUELMO ", "F71"),("NUELCAS", "F72"),
+                ("RIVMAT ", "F51"),("RIT2A  ", "F52"),("RIT3A  ", "F53"),("RIT2B  ", "F54"),("RIT3B  ", "F55"),("DEN2P1", "F70"),
+                ("DEN2P2", "F71"),("DEN2P3", "F72"),("DEN2P4", "F73"),("DEN2NM", "F74"),("DEN2OPT", "F75"),("GMCREF", "F70"),
+                ("GMCO2R", "F71"),("GMCROC", "F72"),("GMCOOC", "F73"),("GMCCC0", "F74"),("GMCHMA", "F75"),("GMCEI1", "F76"),
+                ("GMCEI2", "F77"),("GMCEOB", "F78"),("GMCEDT", "F79"),("GMCERF", "F80"),("GMCHCR", "F81"),("GMCGJK", "F82"),
+                ("GMCGAI", "F83"),("GMCGEO", "F84"),("GMCTE1", "F85"),("GMCTE2", "F86"),("GMCHEF", "F87"),("GMCMOL", "F88"),
+                ("GMCMOS", "F89"),("GMCWGT", "F90"),("GMCRM2", "F91"),("GMCRM1", "F92"),("GMCR00", "F93"),("GMCRP1", "F94"),
+                ("GMCRP2", "F95"),("GMCVEF", "F96"),("GMCDIN", "F97"),("GMC2SZ", "F98"),("GMCCCS", "F99"),("CCREST", "F70"),
+                ("CCDIIS", "F71"),("CCINTS", "F72"),("CCT1AMP", "F73"),("CCT2AMP", "F74"),("CCT3AMP", "F75"),("CCVM", "F76"),
+                ("CCVE", "F77"),("CCQUADS", "F78"),("QUADSVO", "F79"),("EOMSTAR", "F80"),("EOMVEC1", "F81"),("EOMVEC2", "F82"),
+                ("EOMHC1", "F83"),("EOMHC2", "F84"),("EOMHHHH", "F85"),("EOMPPPP", "F86"),("EOMRAMP", "F87"),("EOMRTMP", "F88"),
+                ("EOMDG12", "F89"),("MMPP", "F90"),("MMHPP", "F91"),("MMCIVEC", "F92"),("MMCIVC1", "F93"),("MMCIITR", "F94"),
+                ("EOMVL1", "F95"),("EOMVL2", "F96"),("EOMLVEC", "F97"),("EOMHL1", "F98"),("EOMHL2", "F99"),("CCVVVV", "F80"),
+                ("AMPROCC", "F70"),("ITOPNCC", "F71"),("FOCKMTX", "F72"),("LAMB23", "F73"),("VHHAA", "F74"),("VHHBB", "F75"),
+                ("VHHAB", "F76"),("VMAA", "F77"),("VMBB", "F78"),("VMAB", "F79"),("VMBA", "F80"),("VHPRAA", "F81"),
+                ("VHPRBB", "F82"),("VHPRAB", "F83"),("VHPLAA", "F84"),("VHPLBB", "F85"),("VHPLAB", "F86"),("VHPLBA", "F87"),
+                ("VEAA", "F88"),("VEBB", "F89"),("VEAB", "F90"),("VEBA", "F91"),("VPPPP", "F92"),("INTERM1", "F93"),
+                ("INTERM2", "F94"),("INTERM3", "F95"),("ITSPACE", "F96"),("INSTART", "F97"),("ITSPC3", "F98"))
 
         for e in setenv_data:
             os.environ[e[0].strip()] = os.path.join(self.tempdir, self.jobname + "." + e[1])
 
-        if os.path.exists(os.path.join(gamess_path, "ericfmt.dat")):
-            os.environ["ERICFMT"] = os.path.join(gamess_path, "ericfmt.dat")
-        elif os.path.exists(os.path.join(gamess_path, "auxdata", "ericfmt.dat")):
-            os.environ["ERICFMT"] = os.path.join(gamess_path, "auxdata", "ericfmt.dat")
-        else:
-            raise IOError("ericfmt.dat not found")
+        #if os.path.exists(os.path.join(gamess_path, "ericfmt.dat")):
+        #    os.environ["ERICFMT"] = os.path.join(gamess_path, "ericfmt.dat")
+        #elif os.path.exists(os.path.join(gamess_path, "auxdata", "ericfmt.dat")):
+        #    os.environ["ERICFMT"] = os.path.join(gamess_path, "auxdata", "ericfmt.dat")
+        #else:
+        #    raise IOError("ericfmt.dat not found")
 
-        os.environ["MCPPATH"] = os.path.join(gamess_path, "mcpdata")
-        os.environ["EXTBAS"] = "/dev/null"
-        os.environ["NUCBAS"] = "/dev/null"
-
-        if "pcm" in self.options:
+        if "pcm" in self._options:
             os.environ["PCMDATA"] = os.path.join(self.tempdir, "{}.F26".format(self.jobname))
             os.environ["PCMINTS"] = os.path.join(self.tempdir, "{}.F27".format(self.jobname))
 
-        exec_string = "%s %s %s -ddi 1 1 %s -scr %s > %s" % \
-            (ddikick, gamess, self.jobname, hostname, self.tempdir, self.gamout)
+
+        # exec string
+        # See rungms examples
+        if platform.system() == "Darwin":
+            #       4. How to run in a single computer, namely the "localhost", so
+            #          this computer needn't have a proper Internet name.
+            #          This example also presumes SysV was deliberately *not* chosen
+            #          when DDI was compiled, so that host names have to be repeated,
+            #          instead of using the simpler localhost:cpus=$NCPU form.
+            hostname = "localhost"
+            if self.num_cores > 1:
+                hostname = " ".join([hostname] * self.num_cores)
+
+            exec_string = "{0} {1} {2} -ddi {3} {3} {4} -scr {5} > {6}".format(ddikick, gamess, self.jobname,
+                    self.num_cores, hostname, self.tempdir, self.gamout)
+        else:
+            if self.num_cores == 1:
+                exec_string = "{0} {1} {2} -ddi 1 {3} {4} -scr {5} > {6}".format(ddikick, gamess, self.jobname,
+                    self.num_cores, hostname, self.tempdir, self.gamout)
+            else:
+                exec_string = "{0} {1} {2} -ddi 1 {3} {4}:cpus={3} -scr {5} > {6}".format(ddikick, gamess, self.jobname,
+                    self.num_cores, hostname, self.tempdir, self.gamout)
 
         logger.info(f"Executeing py_rungms with command {exec_string}")
         self.completed_gamess = subprocess.run(exec_string, shell=True)
