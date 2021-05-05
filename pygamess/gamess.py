@@ -82,7 +82,7 @@ class Gamess:
         #Minimal options set. Options specified in the options arguments will be
         # merged into this options set
         self._options = {
-            'contrl': {'scftyp': 'rhf', 'runtyp': 'energy'},
+            'contrl': {'scftyp': 'rhf', 'runtyp': 'energy', 'maxit': 200},
             'basis': {'gbasis': 'sto', 'ngauss': '3'},
             'statpt': {'opttol': '0.0001', 'nstep': '20'},
             'system': {'mwords': '100', 'memddi': '0'},
@@ -277,20 +277,36 @@ class Gamess:
 
     def run_type(self, runtype):
         self._options['contrl']['runtyp'] = runtype
+        logger.debug(self._options['contrl'])
 
     def dft_type(self, dfttype):
         self._options['contrl']['dfttyp'] = dfttype
+        logger.debug(self._options['contrl'])
 
     def scf_type(self, scftype):
         self._options['contrl']['scftyp'] = scftype
+        logger.debug(self._options['contrl'])
     
     def mul_type(self, multype):
         self._options['contrl']['multype'] = multype
+        logger.debug(self._options['contrl'])
 
-    def icharge_type(self, chargetype):
-        self._options['contrl']['icharg'] = chargetype
+    def charge(self, charge):
+        self._options['contrl']['icharg'] = charge
+        logger.debug(self._options['contrl'])
+
+    def multiplicity(self, mult):
+        self._options['contrl']['mult'] = mult
+        logger.debug(self._options['contrl'])
 
     def pcm_type(self, solvent, ief=-10):
+        """C-PCM is normally a better choice than IEF-PCM.  The                            
+        iterative solvers chosen by IEF=-3 or -10 usually reproduce                     
+        the energy of the explicit solvers IEF=3 or 10 to within                        
+        1.0d-8 Hartrees, and will be much faster and use less                           
+        memory for large molecules.  D-PCM should be considered                         
+        obsolete, and choices 1 and 2 are seldom made.                    
+        """
         if solvent == "gas":
             if "pcm" in self._options:
                 self._options.pop("pcm")
@@ -299,6 +315,7 @@ class Gamess:
                 self._options['pcm'] = {}
             self._options['pcm']['solvnt'] = solvent
             self._options['pcm']['ief'] = ief
+            logger.debug(self._options['pcm'])
 
     def options(self, options):
         for k, v in options.items():

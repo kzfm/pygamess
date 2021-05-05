@@ -17,6 +17,9 @@ set GAMESS\_HOME environment in your .bashrc or .zshrc:
 
     $ export GAMESS_HOME=/usr/local/gamess
 
+*** Mac users can obtain the pre-compiled binary executables from [GAMESS download site](https://www.msg.chem.iastate.edu/gamess/download.html).
+But Linux users will need to compile the souce code. ***
+
 ## Test
 
     $ pytest
@@ -119,7 +122,7 @@ coordinates of the molecule:
     >>> m = rdkit_optimize("CCO")
     >>> g = Gamess()
     >>> g.run_type('optimize')
-    >>> r = g.run(mol)
+    >>> r = g.run(m)
     >>> r.total_energy
     -152.1330661028
     >>> original_conf = m.GetConformer(0)
@@ -149,6 +152,16 @@ coordinates of the molecule:
     [-0.51450285  1.49751073  0.00304491]
     [-1.4921073  -1.13653094 -0.2782105 ]
 
+Or pass the options to a constractor::
+
+    >>> from pygamess import Gamess
+    >>> from pygamess.utils import rdkit_optimize
+    >>> m = rdkit_optimize("CCO")
+    >>> g = Gamess(options={"contrl":{"runtyp":"optimize"}})
+    >>> r = g.run(m)
+    >>> r.total_energy
+    -152.1330661279
+
 ### Changing basis sets
 
 Use basis\_sets method:
@@ -175,9 +188,53 @@ Use basis\_sets method:
 
 Or edit the basis attribute directly:
 
-    >>> g.options['basis'] = {'gbasis': 'sto', 'ngauss': '3'}
+    >>> g.options({'basis':{'gbasis': 'sto', 'ngauss': '3'}})
     >>> g.run(m).total_energy
     -152.127991054
+
+### Changing the electronic state
+
+The ground state (default):
+
+    >>> from pygamess.utils import rdkit_optimize
+    >>> from pygamess import Gamess
+    >>> g = Gamess()
+    >>> g.basis_sets("6-31G*")
+    >>> m = rdkit_optimize("CCO")
+    >>> g.run_type("optimize")
+    >>> r = g.run(m)
+    >>> r.total_energy
+    -154.0755757352
+
+The cationic state:
+
+    >>> g.scf_type("uhf")
+    >>> g.charge(1)
+    >>> g.multiplicity(2)
+    >>> r = g.run(m)
+    >>> r.total_energy
+    -153.7367666449
+
+Or:
+
+    >>> g.options({"contrl":{"icharg": 1, "mult": 2, "scftyp": "uhf"}})
+    >>> r = g.run(m)
+    >>> r.total_energy
+    -153.7367666449
+
+The anionic state:
+
+    >>> g.options({"contrl":{"icharg": -1, "mult": 2, "scftyp": "uhf"}})
+    >>> r = g.run(m)
+    >>> r.total_energy
+    -153.9302151707
+
+The triplet state:
+
+    >>> g.options({"contrl":{"icharg": 0, "mult": 3, "scftyp": "uhf"}})
+    >>> r = g.run(m)
+    >>> r.total_energy
+    -153.9581403463
 
 ### DFT calculation
 
@@ -258,6 +315,13 @@ use input method:
     H      1.0      1.5565636556    0.0841975943    0.1652431920 
     $END
 
+### Parsing a GAMESS output file
+
+use gparse:
+
+    >>> from pygamess.gamout_parser import gparse
+    >>> r = gparse("/somewhere/gamess.out")
+
 ### Debugging pygamess
 
 set PYGAMESS\_DEBUG environment:
@@ -276,6 +340,11 @@ set logger level:
     DEBUG:pygamess.gamess:tmpdir: /var/folders/gm/4tcnnyqd09d2jt7p0dtvr28m0000gn/T/tmp889j9c7e
 
 ## History
+
+### 0.6.2 (2021-05-05)
+
+- Support options
+- Add parser description
 
 ### 0.6.1 (2021-05-03)
 
