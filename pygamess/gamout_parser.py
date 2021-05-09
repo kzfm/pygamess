@@ -39,6 +39,7 @@ def default_parse(out_str, r):
     eigen_re = re.compile('EIGENVECTORS(.*?)\n\n     ------', re.DOTALL)
     hessian_re = re.compile('THE HARMONIC ZERO POINT ENERGY IS(.*?)KCAL/MOL', re.DOTALL)
     stationary_point_re = re.compile('THIS IS NOT A STATIONARY POINT ON THE MOLECULAR PES')
+    nsearch_re = re.compile('    NSERCH=(.*)\n')
 
     # Total Energy, this only match in gas phase calculations
     r.total_energy = None
@@ -69,7 +70,13 @@ def default_parse(out_str, r):
                     r.total_energy = float(l[-20:-5].strip())
                 else:
                     pass
-                
+
+    # NSERCH (optimization enegy transition)
+    r.nsearches = []
+    for m in nsearch_re.finditer(out_str):
+        l = m.group(1).strip()
+        r.nsearches.append(float(l.split()[-1]))
+                    
     # Coordinates
     for m in coord_re.finditer(out_str):
         r.coordinates = []
@@ -112,7 +119,13 @@ def default_parse(out_str, r):
             if l.startswith("                  ") and l.find(".") > 0:
                 ls = [float(v) for v in l.split()]
                 mo_energies += ls
-    
+
+    r.orbital_energies = mo_energies
+    r.nHOMO = r.orbital_energies[int(num_elec/2)-2]
+    r.HOMO = r.orbital_energies[int(num_elec/2)-1]
+    r.LUMO = r.orbital_energies[int(num_elec/2)]
+    r.nLUMO = r.orbital_energies[int(num_elec/2)+1]
+
     # Optimization output file contains "MOLECULAR ORBITALS" section.
     m = mo_re.search(out_str)
     if m is not None:
@@ -133,12 +146,5 @@ def default_parse(out_str, r):
             r.is_stationary_point = False
         else:
             r.ZPE =float(m.group(1).split("\n")[-1])
-    
-    r.orbital_energies = mo_energies
-
-    r.nHOMO = r.orbital_energies[int(num_elec/2)-2]
-    r.HOMO = r.orbital_energies[int(num_elec/2)-1]
-    r.LUMO = r.orbital_energies[int(num_elec/2)]
-    r.nLUMO = r.orbital_energies[int(num_elec/2)+1]
     
     return r
