@@ -155,6 +155,9 @@ class Gamess:
         nmol.SetDoubleProp("dy", result.dipole_moment[1])
         nmol.SetDoubleProp("dz", result.dipole_moment[2])
         nmol.SetProp("orbital_energies", " ".join([str(v) for v in result.orbital_energies]))
+        nmol.SetProp("program", "GAMESS")
+        nmol.SetProp("basis", str(self._options['basis']))
+        nmol.SetProp("method", str(self._options['contrl']))
 
         for i, cds in enumerate(result.coordinates):
             conf.SetAtomPosition(i, cds)
