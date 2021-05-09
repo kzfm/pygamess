@@ -37,7 +37,8 @@ def default_parse(out_str, r):
     num_electron_re = re.compile('NUMBER OF ELECTRONS(.*?)\n')
     mo_re = re.compile('MOLECULAR ORBITALS(.*?)\n\n     ------', re.DOTALL)
     eigen_re = re.compile('EIGENVECTORS(.*?)\n\n     ------', re.DOTALL)
-    
+    hessian_re = re.compile('THE HARMONIC ZERO POINT ENERGY IS(.*?)KCAL/MOL', re.DOTALL)
+    stationary_point_re = re.compile('THIS IS NOT A STATIONARY POINT ON THE MOLECULAR PES')
 
     # Total Energy, this only match in gas phase calculations
     r.total_energy = None
@@ -121,6 +122,17 @@ def default_parse(out_str, r):
             if l.startswith("                  ") and l.find(".") > 0:
                 ls = [float(v) for v in l.split()]
                 mo_energies += ls
+    
+    # HESSIAN
+    r.is_stationary_point = None
+    r.ZPE = None
+    m = hessian_re.search(out_str)
+    if m is not None:
+        sp = stationary_point_re.search(out_str)
+        if sp is not None:
+            r.is_stationary_point = False
+        else:
+            r.ZPE =float(m.group(1).split("\n")[-1])
     
     r.orbital_energies = mo_energies
 

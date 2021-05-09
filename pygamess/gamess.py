@@ -83,10 +83,10 @@ class Gamess:
         # merged into this options set
         self._options = {
             'contrl': {'scftyp': 'rhf', 'runtyp': 'energy', 'maxit': 200},
-            'basis': {'gbasis': 'sto', 'ngauss': '3'},
-            'statpt': {'opttol': '0.0001', 'nstep': '20'},
-            'system': {'mwords': '100', 'memddi': '0'},
-            'cis': {'nstate': '1'}
+            'basis': {'gbasis': 'sto', 'ngauss': 3},
+            'statpt': {'opttol': '0.0001', 'nstep': 100},
+            'system': {'mwords': 100, 'memddi': 0},
+            'cis': {'nstate': 1}
         }
 
         self._options.update(options)
@@ -275,8 +275,10 @@ class Gamess:
             logger.error("basis type not found")
         logger.info(self._options['basis'])
 
-    def run_type(self, runtype):
+    def run_type(self, runtype, hessend=False):
         self._options['contrl']['runtyp'] = runtype
+        if runtype == "optimize":
+            self.hessend(hessend)
         logger.debug(self._options['contrl'])
 
     def dft_type(self, dfttype):
@@ -299,6 +301,13 @@ class Gamess:
         self._options['contrl']['mult'] = mult
         logger.debug(self._options['contrl'])
 
+    def hessend(self, hessend):
+        if hessend:
+            self._options['statpt']['hssend'] = ".t."
+        else:
+            self._options['statpt']['hssend'] = ".f."
+        logger.debug(self._options['statpt'])
+
     def pcm_type(self, solvent, ief=-10):
         """C-PCM is normally a better choice than IEF-PCM.  The                            
         iterative solvers chosen by IEF=-3 or -10 usually reproduce                     
@@ -320,6 +329,7 @@ class Gamess:
     def options(self, options):
         for k, v in options.items():
             self._options[k].update(v)
+        logger.debug(self._options)
 
     def exec_rungms(self, mol):
         self.gamin = self.write_file(mol)
