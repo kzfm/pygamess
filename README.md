@@ -292,6 +292,21 @@ future:
     >>> r.total_interacion
     -0.0076237032
 
+### TDDFT calculation
+
+The example compound(Methyl yellow) was downloaded from [PubchemQC project](http://pubchemqc.riken.jp/cgi-bin/molecularquery.py?name=methyl+yellow).
+
+    >>> from pygamess import Gamess
+    >>> from rdkit import Chem
+    >>> m = Chem.MolFromMolFile("examples/methyl_yellow.mol", removeHs=False)
+    >>> g = Gamess()
+    >>> g.dft_type("b3lyp", tddft=True)
+    >>> g.basis_sets("6-31G*")
+    >>> r = g.run(m)
+    >>> r.uv_spectra # (exitation ev, oscillator strength)
+[('2.629', '0.0000'), ('3.217', '0.9349'), ('4.209', '0.0066'), ('4.263', '0.0020'), ('4.424', '0.1041'), ('4.779', '0.1068'), ('4.913', '0.0563'), ('4.940', '0.0001'), ('5.051', '0.0000'), ('5.430', '0.0006')]
+
+
 ### Printing GAMESS INPUT
 
 use input method:

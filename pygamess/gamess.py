@@ -210,6 +210,9 @@ class Gamess:
         if self._options['contrl'].get('citype', None) == 'cis':
             header += self.print_section('cis')
 
+        if self._options['contrl'].get('tddft', None) == 'excite':
+            header += self.print_section('tddft')
+
         return header
 
     def print_section(self, pref):
@@ -219,9 +222,11 @@ class Gamess:
             ret_flag = True
             d = self._options[pref]
             section = " ${} ".format(pref)
+            num_items = len(d)
             for k, v in d.items():
                 section += "{}={} ".format(k, v)
-                if ret_flag and len(section) > 60:
+                num_items -= 1
+                if ret_flag and len(section) > 60 and num_items > 0:
                     section += "\n"
                     ret_flag = False
             section += "$end\n"
@@ -284,8 +289,19 @@ class Gamess:
             self.hessend(hessend)
         logger.debug(self._options['contrl'])
 
-    def dft_type(self, dfttype):
+    def dft_type(self, dfttype, tddft=False, nstate=10):
         self._options['contrl']['dfttyp'] = dfttype
+        if tddft:
+            self._options['contrl']['tddft'] = "excite"
+            if "tddft" not in self._options:
+                self._options['tddft'] = {}
+            self._options['tddft']['nstate'] = nstate
+        else:
+            self._options['contrl'].pop('tddft', None)
+        logger.debug(self._options['contrl'])
+
+    def ci_type(self, citype):
+        self._options['contrl']['cityp'] = citype
         logger.debug(self._options['contrl'])
 
     def scf_type(self, scftype):
