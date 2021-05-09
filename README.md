@@ -304,8 +304,46 @@ The example compound(Methyl yellow) was downloaded from [PubchemQC project](http
     >>> g.basis_sets("6-31G*")
     >>> r = g.run(m)
     >>> r.uv_spectra # (exitation ev, oscillator strength)
-[('2.629', '0.0000'), ('3.217', '0.9349'), ('4.209', '0.0066'), ('4.263', '0.0020'), ('4.424', '0.1041'), ('4.779', '0.1068'), ('4.913', '0.0563'), ('4.940', '0.0001'), ('5.051', '0.0000'), ('5.430', '0.0006')]
+    [('2.629', '0.0000'), ('3.217', '0.9349'), ('4.209', '0.0066'), ('4.263', '0.0020'), ('4.424', '0.1041'), ('4.779', '0.1068'), ('4.913', '0.0563'), ('4.940', '0.0001'), ('5.051', '0.0000'), ('5.430', '0.0006')]
 
+- ref: [独習 量子化学計算(Self-study Quantum Chemical Calculations)](https://www.amazon.co.jp/gp/product/B0863C799Z/)
+
+### NMR spectra calculation
+
+Optimizing the compound:
+
+    >>> from pygamess import Gamess
+    >>> from rdkit import Chem
+    >>> g = Gamess()
+    >>> from pygamess.utils import rdkit_optimize
+    >>> m = rdkit_optimize("C=CCBr")
+    >>> g.run_type("optimize")
+    >>> g.dft_type("b3lyp")
+    >>> g.basis_sets("6-31G*")
+    >>> r = g.run(m)
+    >>> with open("examples/C=CCBr.mol", "w") as f:
+    ...   f.write(Chem.MolToMolBlock(r.mol))
+    ... 
+
+NMR spectra calculation (It takes a long time):
+
+    >>> from pygamess import Gamess
+    >>> from rdkit import Chem
+    >>> m = Chem.MolFromMolFile("examples/C=CCBr.mol", removeHs=False)
+    >>> g = Gamess(num_cores=1) # PARALLEL EXECUTION IS NOT ENABLED.
+    >>> g.basis_sets("6-31G*")
+    >>> g.run_type("nmr")
+    >>> r = g.run(m)
+    >>> r.isotropic_shielding
+    [79.8218, 68.6661, 157.7233, 2476.7501, 27.0851, 27.2072, 26.4652, 28.7654, 28.7932]
+
+    # NMR MAY BE COMPUTED ONLY FOR SCFTYP=RHF,
+    # NO CORRELATION OPTION (DFTTYP, CITYP, CCTYP, MPLEVL) MAY BE CHOSEN
+    # NO SEMI-EMPIRICAL OPTION (GBASIS=AM1/PM3/MNDO) MAY BE CHOSEN
+    # DIRECT AO INTEGRAL CALCULATION (DIRSCF) IS NOT ENABLED,
+    # AND/OR PARALLEL EXECUTION IS NOT ENABLED.
+
+- ref: [独習 量子化学計算(Self-study Quantum Chemical Calculations)](https://www.amazon.co.jp/gp/product/B0863C799Z/)
 
 ### Printing GAMESS INPUT
 
@@ -355,6 +393,14 @@ set logger level:
     DEBUG:pygamess.gamess:tmpdir: /var/folders/gm/4tcnnyqd09d2jt7p0dtvr28m0000gn/T/tmp889j9c7e
 
 ## History
+
+### 0.6.3 (2021-05-09)
+
+- Support hessend (#8)
+- Support TD-DFT (#2)
+- Store the energy of each step during structural optimization (#7)
+- Add the calculation condition into Chem object (#6)
+- Support NMR calculation
 
 ### 0.6.2 (2021-05-05)
 

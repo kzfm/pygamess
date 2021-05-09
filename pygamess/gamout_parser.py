@@ -41,6 +41,7 @@ def default_parse(out_str, r):
     stationary_point_re = re.compile('THIS IS NOT A STATIONARY POINT ON THE MOLECULAR PES')
     nsearch_re = re.compile('    NSERCH=(.*)\n')
     tddft_re = re.compile('SUMMARY OF TDDFT RESULTS\n\n(.*?)\n TRANSITION', re.DOTALL)
+    nmr_re = re.compile('GIAO CHEMICAL SHIELDING TENSOR \(PPM\):\n(.*?)DONE WITH NMR SHIELDINGS', re.DOTALL)
 
     # Total Energy, this only match in gas phase calculations
     r.total_energy = None
@@ -157,5 +158,19 @@ def default_parse(out_str, r):
             if len(ls) == 8:
                 uv_spectra.append((ls[3], ls[7]))
         r.uv_spectra = uv_spectra
+
+    # NMR
+    isotropic_shielding = []
+    m = nmr_re.search(out_str)
+    if m is not None:
+        for l in m.group(1).split("\n"):
+            ls = l.split()
+            if len(ls) == 1:
+                try:
+                    n = float(ls[0])
+                    isotropic_shielding.append(n)
+                except:
+                    pass
+        r.isotropic_shielding = isotropic_shielding
 
     return r
