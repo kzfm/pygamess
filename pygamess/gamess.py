@@ -86,6 +86,7 @@ class Gamess:
             'basis': {'gbasis': 'sto', 'ngauss': 3},
             'statpt': {'opttol': '0.0001', 'nstep': 100},
             'system': {'mwords': 300, 'memddi': 0},
+            'scf': {'dirscf': '.f.'},
             'cis': {'nstate': 1}
         }
 
@@ -162,6 +163,8 @@ class Gamess:
             nmol.SetProp("uv_spectra", str(result.uv_spectra))
         if hasattr(result, "isotropic_shielding"):
             nmol.SetProp("isotropic_shielding", str(result.isotropic_shielding))
+        if hasattr(result, "ir_spectra"):
+            nmol.SetProp("ir_spectra", str(result.ir_spectra))
 
         for i, cds in enumerate(result.coordinates):
             conf.SetAtomPosition(i, cds)
@@ -202,10 +205,11 @@ class Gamess:
         """ gamess header"""
         # self.contrl['icharg'] = mol.GetFormalCharge()
         # TODO: cope with the charge and the multiplicity of the compound
-        header = "{}{}{}{}".format(
+        header = "{}{}{}{}{}".format(
             self.print_section('contrl'),
             self.print_section('pcm'),
             self.print_section('basis'),
+            self.print_section('scf'),
             self.print_section('system'))
 
         if self._options['contrl']['runtyp'] == 'optimize':
@@ -327,8 +331,12 @@ class Gamess:
     def hessend(self, hessend):
         if hessend:
             self._options['statpt']['hssend'] = ".t."
+            self._options['contrl']['nosym'] = 1
+            self._options['scf']['dirscf'] = ".t."
         else:
             self._options['statpt']['hssend'] = ".f."
+            self._options['contrl'].pop('nosym', None)
+            self._options['scf']['dirscf'] = ".f."
         logger.debug(self._options['statpt'])
 
     def pcm_type(self, solvent, ief=-10):

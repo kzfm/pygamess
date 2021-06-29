@@ -38,6 +38,7 @@ def default_parse(out_str, r):
     mo_re = re.compile('MOLECULAR ORBITALS(.*?)\n\n     ------', re.DOTALL)
     eigen_re = re.compile('EIGENVECTORS(.*?)\n\n     ------', re.DOTALL)
     hessian_re = re.compile('THE HARMONIC ZERO POINT ENERGY IS(.*?)KCAL/MOL', re.DOTALL)
+    ir_re = re.compile('SYMMETRY  RED\. MASS  IR INTENS\.\n(.*?)\n\n     ------', re.DOTALL)
     stationary_point_re = re.compile('THIS IS NOT A STATIONARY POINT ON THE MOLECULAR PES')
     nsearch_re = re.compile('    NSERCH=(.*)\n')
     tddft_re = re.compile('SUMMARY OF TDDFT RESULTS\n\n(.*?)\n TRANSITION', re.DOTALL)
@@ -148,7 +149,16 @@ def default_parse(out_str, r):
             r.is_stationary_point = False
         else:
             r.ZPE =float(m.group(1).split("\n")[-1])
-    
+
+    ir_spectra = []
+    m = ir_re.search(out_str)
+    if m is not None:
+        for l in m.group(1).split("\n"):
+            ls = l.split()
+            ir_spectra.append((ls[1], ls[4]))
+        r.ir_spectra = ir_spectra
+
+
     # TDDFT
     uv_spectra = []
     m = tddft_re.search(out_str)
