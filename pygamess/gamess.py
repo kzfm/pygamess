@@ -85,7 +85,7 @@ class Gamess:
             'contrl': {'scftyp': 'rhf', 'runtyp': 'energy', 'maxit': 200},
             'basis': {'gbasis': 'sto', 'ngauss': 3},
             'statpt': {'opttol': '0.0001', 'nstep': 100},
-            'system': {'mwords': 100, 'memddi': 0},
+            'system': {'mwords': 300, 'memddi': 0},
             'cis': {'nstate': 1}
         }
 
@@ -154,10 +154,14 @@ class Gamess:
         nmol.SetDoubleProp("dx", result.dipole_moment[0])
         nmol.SetDoubleProp("dy", result.dipole_moment[1])
         nmol.SetDoubleProp("dz", result.dipole_moment[2])
-        nmol.SetProp("orbital_energies", " ".join([str(v) for v in result.orbital_energies]))
+        nmol.SetProp("orbital_energies", str(result.orbital_energies))
         nmol.SetProp("program", "GAMESS")
         nmol.SetProp("basis", str(self._options['basis']))
         nmol.SetProp("method", str(self._options['contrl']))
+        if hasattr(result, "uv_spectra"):
+            nmol.SetProp("uv_spectra", str(result.uv_spectra))
+        if hasattr(result, "isotropic_shielding"):
+            nmol.SetProp("isotropic_shielding", str(result.isotropic_shielding))
 
         for i, cds in enumerate(result.coordinates):
             conf.SetAtomPosition(i, cds)
