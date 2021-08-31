@@ -35,8 +35,8 @@ def sdf2gamout(sdffile):
         if m.HasProp("ir_spectra") > 0:
             r.ir_spectra = eval(m.GetProp("ir_spectra"))
 
-        r.mulliken_charges = [a.GetProp("mulliken_charge") for a in r.mol.GetAtoms()]
-        r.lowdin_charges = [a.GetProp("lowdin_charge") for a in r.mol.GetAtoms()]
+        r.mulliken_charges = [a.GetProp("mulliken_charge") for a in m.GetAtoms()]
+        r.lowdin_charges = [a.GetProp("lowdin_charge") for a in m.GetAtoms()]
 
         r.mol = m
         rs.append(r)
