@@ -387,6 +387,30 @@ use gparse:
     >>> from pygamess.gamout_parser import gparse
     >>> r = gparse("/somewhere/gamess.out")
 
+### Persistence of calculation results
+
+save sdf file:
+
+    >>> from pygamess import Gamess
+    >>> from pygamess.utils import rdkit_optimize
+    >>> from rdkit import Chem
+    >>> m = rdkit_optimize("CCO")
+    >>> g = Gamess()
+    >>> r = g.run(m)
+    >>> w = Chem.SDWriter("CCO.sdf")
+    >>> w.write(r.mol)
+    >>> w.close()
+
+load from sdf file:
+
+    >>> from pygamess.utils import sdf2gamout
+    >>> r = sdf2gamout("CCO.sdf")
+    >>> r = rs[0]
+    >>> r.HOMO
+    -0.3453
+    >>> r.mulliken_charges
+    ['-0.17122599999999999', '0.024351000000000001', '-0.29816199999999998', '0.049614999999999999', '0.055830999999999999', '0.061924', '0.042714000000000002', '0.061112', '0.173842']
+
 ### Debugging pygamess
 
 set PYGAMESS\_DEBUG environment:
@@ -405,6 +429,10 @@ set logger level:
     DEBUG:pygamess.gamess:tmpdir: /var/folders/gm/4tcnnyqd09d2jt7p0dtvr28m0000gn/T/tmp889j9c7e
 
 ## History
+
+### 0.6.6 (2021-08-31)
+
+- Bug fix (SDF -> GamessOut)
 
 ### 0.6.5 (2021-08-31)
 
