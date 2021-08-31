@@ -155,7 +155,7 @@ def default_parse(out_str, r):
     if m is not None:
         for l in m.group(1).split("\n"):
             ls = l.split()
-            ir_spectra.append((ls[1], ls[4]))
+            ir_spectra.append((float(ls[1]), float(ls[4])))
         r.ir_spectra = ir_spectra
 
 
@@ -166,7 +166,7 @@ def default_parse(out_str, r):
         for l in m.group(1).split("\n")[2:]:
             ls = l.split()
             if len(ls) == 8:
-                uv_spectra.append((ls[3], ls[7]))
+                uv_spectra.append((float(ls[3]), float(ls[7])))
         r.uv_spectra = uv_spectra
 
     # NMR

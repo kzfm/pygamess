@@ -406,6 +406,10 @@ set logger level:
 
 ## History
 
+### 0.6.5 (2021-08-31)
+
+- Add SDF -> GamessOut object parser for persistence of calculation results
+
 ### 0.6.4 (2021-06-29)
 
 - Store UV-spectra NMR-spectra and IR-spectra into Chem object
