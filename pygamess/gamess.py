@@ -214,12 +214,18 @@ class Gamess:
 
         if self._options['contrl']['runtyp'] == 'optimize':
             header += self.print_section('statpt')
-
+            if self._options['statpt']['hssend'] == ".t.":
+                header += self.print_section('cphf')
+                
         if self._options['contrl'].get('citype', None) == 'cis':
             header += self.print_section('cis')
 
         if self._options['contrl'].get('tddft', None) == 'excite':
             header += self.print_section('tddft')
+
+        if self._options['contrl'].get('tddft', None) == 'excite':
+            header += self.print_section('tddft')
+
 
         return header
 
@@ -329,10 +335,17 @@ class Gamess:
         logger.debug(self._options['contrl'])
 
     def hessend(self, hessend):
+        #  DFT ANALYTIC HESSIAN PRESENTLY HAS 5 RESTRICTIONS:
+        #  $CONTRL: SCFTYP MUST BE EITHER RHF OR UHF
+        #  $CONTRL: POINT GROUP SYMMETRY NOT ALLOWED, SET NOSYM=1
+        #     $SCF: AO INTEGRAL DIRECT: SET DIRSCF=.TRUE.
+        #    $CPHF: AO INTEGRAL DRIVEN: SET CPHF=AO
+        #  AND THE FUNCTIONAL MUST NOT BE OF META-GGA TYPE.
         if hessend:
             self._options['statpt']['hssend'] = ".t."
             self._options['contrl']['nosym'] = 1
             self._options['scf']['dirscf'] = ".t."
+            self._options['cphf'] = {"cphf": "AO"}
         else:
             self._options['statpt']['hssend'] = ".f."
             self._options['contrl'].pop('nosym', None)
