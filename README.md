@@ -430,6 +430,10 @@ set logger level:
 
 ## History
 
+### 0.6.7 (2021-)
+
+- Bug fix (options)
+
 ### 0.6.6 (2021-08-31)
 
 - Bug fix (SDF -> GamessOut)

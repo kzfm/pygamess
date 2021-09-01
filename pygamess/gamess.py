@@ -359,6 +359,8 @@ class Gamess:
 
     def options(self, options):
         for k, v in options.items():
+            if k not in self._options:
+                self._options[k] = {}
             self._options[k].update(v)
         logger.debug(self._options)
 
