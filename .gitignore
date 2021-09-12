@@ -1,2 +1,8 @@
 emails_private.yml
+build
+.vscode/
+__pycache__/
+dist/
+pygamess.egg-info/PKG-INFO
+pygamess/__pycache__/
 

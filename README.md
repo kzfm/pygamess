@@ -17,8 +17,10 @@ set GAMESS\_HOME environment in your .bashrc or .zshrc:
 
     $ export GAMESS_HOME=/usr/local/gamess
 
-*** Mac users can obtain the pre-compiled binary executables from [GAMESS download site](https://www.msg.chem.iastate.edu/gamess/download.html).
-But Linux users will need to compile the souce code. ***
+*** 
+Windows/Mac users can obtain the pre-compiled binary executables from [GAMESS download site](https://www.msg.chem.iastate.edu/gamess/download.html).
+But Linux users need to compile the souce code. 
+***
 
 ## Test
 
@@ -437,9 +439,11 @@ set logger level:
 
 ## History
 
-### 0.6.7 (2021-)
+### 0.6.7 (2021-09-12)
 
 - Bug fix (options)
+- Support Windows pre-compiled GAMESS (#11)
+- OS-dependent termination detection (#12)
 
 ### 0.6.6 (2021-08-31)
 
