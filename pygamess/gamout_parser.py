@@ -15,13 +15,17 @@ def gparse(gamout, parse_type="default"):
     r = GamessOut()
     out_str = open(gamout, "r").read()
 
-    # exited gracefully?
-    if not out_str.endswith("gracefully.\n"):
-        r.error_message = out_str[-1000:]
-        return r
-    else:
-        r.success = True
-    
+    # # exited gracefully?
+    # if not out_str.endswith("gracefully.\n"):
+    #     r.error_message = out_str[-1000:]
+    #     return r
+    # else:
+    #     r.success = True
+
+    # NOTE: Above check appears to be version-dependent.
+    #   Temporary fix: assume it worked until proven otherwise:
+    r.success = True
+
     if parse_type == "default":
         r = default_parse(out_str, r)
 
@@ -79,7 +83,7 @@ def default_parse(out_str, r):
     for m in nsearch_re.finditer(out_str):
         l = m.group(1).strip()
         r.nsearches.append(float(l.split()[-1]))
-                    
+
     # Coordinates
     for m in coord_re.finditer(out_str):
         r.coordinates = []
@@ -87,7 +91,7 @@ def default_parse(out_str, r):
             coord = l.split()
             cds = [float(coord[2]), float(coord[3]), float(coord[4])]
             r.coordinates.append(cds)
-    
+
     # MULLIKEN and LOWDIN charge
     for m in pop_re.finditer(out_str):
         r.mulliken_charges = []
@@ -97,7 +101,7 @@ def default_parse(out_str, r):
             if len(ls) == 6:
                 r.mulliken_charges.append(float(ls[3]))
                 r.lowdin_charges.append(float(ls[5]))
-    
+
     # Dipole morment
     for m in es_moment_re.finditer(out_str):
         r.dipole_moment = []
@@ -106,13 +110,13 @@ def default_parse(out_str, r):
             if len(ls) == 4:
                 for v in ls:
                     r.dipole_moment.append(float(v))
-    
+
     # Num of electrons
     m = num_electron_re.search(out_str)
     if m is not None:
         num_elec = m.group().split("=")[1][:-1]
         num_elec = int(num_elec)
-    
+
     # MO
     m = eigen_re.search(out_str)
     if m is not None:
@@ -138,7 +142,7 @@ def default_parse(out_str, r):
             if l.startswith("                  ") and l.find(".") > 0:
                 ls = [float(v) for v in l.split()]
                 mo_energies += ls
-    
+
     # HESSIAN
     r.is_stationary_point = None
     r.ZPE = None

@@ -59,16 +59,24 @@ class Gamess:
 
         if gamess_path is None:
             try:
+                # NOTE: ddikick is not involved in Windows installation,
+                #   so Windows users rely on GAMESS_HOME environment variable.
                 gamess_path = list(filter(lambda f: os.path.isfile(os.path.join(f, 'ddikick.x')),
-                                     os.environ['PATH'].split(':')))[0]
+                                     os.environ['PATH'].split(os.path.pathsep)))[0]
             except IndexError:
                 print("gamess_path not found")
                 exit()
 
         #  search rungms script
         rungms = None
-        possible_paths = [os.path.join(d, f'rungms{rungms_suffix}')
-                          for d in os.environ['PATH'].split(':')]
+        # Find rungms script inside GAMESS path
+        possible_paths = [os.path.join(gamess_path, f'rungms{rungms_suffix}')]
+        # Search entire PATH in case rungms isn't in GAMESS path
+        possible_paths.extend([os.path.join(d, f'rungms{rungms_suffix}')
+                          for d in os.environ['PATH'].split(os.path.pathsep)])
+        # NOTE: Is there really a use case for searching rungms not in GAMESS path?
+        #   If not, just set rungms = os.path.join(gamess_path, f'rungms{rungms_suffix}')
+
         try:
             rungms = list(filter(lambda f: os.path.isfile(f), possible_paths))[0]
         except IndexError:
@@ -168,7 +176,7 @@ class Gamess:
 
         for i, cds in enumerate(result.coordinates):
             conf.SetAtomPosition(i, cds)
-        
+
         for i, c in enumerate(zip(result.mulliken_charges, result.lowdin_charges)):
             atom = nmol.GetAtomWithIdx(i)
             atom.SetDoubleProp("mulliken_charge", c[0])
@@ -184,11 +192,14 @@ class Gamess:
         self.jobname = jobname
         self.gamin = gamin
         self.gamout = gamout
-        command = "%s %s %s %i > %s" % (self.rungms, gamin, self.executable_num,
-            self.num_cores, gamout)
+        command = "%s %s %s %i > %s" % (self.rungms, self.gamin,
+            self.executable_num, self.num_cores, self.gamout)
         self.start_time = datetime.datetime.now()
         logger.info(f"Executing {command}")
-        self.completed_gamess = subprocess.run(command, shell=True)
+
+        # Run from GAMESS_PATH, lest rungms.gms config file not exist
+        self.completed_gamess = subprocess.run(command, shell=True, cwd=self.gamess_path)
+
         self.end_time = datetime.datetime.now()
         self.elapsed_time = self.end_time - self.start_time
         logger.info(f"Status code: {self.completed_gamess.returncode}")
@@ -196,6 +207,8 @@ class Gamess:
             logger.error("Gamess error: {0}".format(self.completed_gamess.stderr))
 
     def run(self, mol, use_rungms=False):
+        # NOTE: Default use_rungms=False incompatible with Windows version
+        #   Use use_rungms=True instead.
         self.jobname = randstr(6)
         # the self properties self.gamin and self.gamout will be assigned to by the next line
         new_mol = self.exec_rungms(mol) if use_rungms else self.py_rungms(mol)
@@ -216,7 +229,7 @@ class Gamess:
             header += self.print_section('statpt')
             if self._options['statpt']['hssend'] == ".t.":
                 header += self.print_section('cphf')
-                
+
         if self._options['contrl'].get('citype', None) == 'cis':
             header += self.print_section('cis')
 
@@ -230,7 +243,7 @@ class Gamess:
         return header
 
     def print_section(self, pref):
-        # A line can only be 80 characters long. Anything after that is ignored. 
+        # A line can only be 80 characters long. Anything after that is ignored.
         section = ""
         if pref in self._options:
             ret_flag = True
@@ -321,7 +334,7 @@ class Gamess:
     def scf_type(self, scftype):
         self._options['contrl']['scftyp'] = scftype
         logger.debug(self._options['contrl'])
-    
+
     def mul_type(self, multype):
         self._options['contrl']['multype'] = multype
         logger.debug(self._options['contrl'])
@@ -353,12 +366,12 @@ class Gamess:
         logger.debug(self._options['statpt'])
 
     def pcm_type(self, solvent, ief=-10):
-        """C-PCM is normally a better choice than IEF-PCM.  The                            
-        iterative solvers chosen by IEF=-3 or -10 usually reproduce                     
-        the energy of the explicit solvers IEF=3 or 10 to within                        
-        1.0d-8 Hartrees, and will be much faster and use less                           
-        memory for large molecules.  D-PCM should be considered                         
-        obsolete, and choices 1 and 2 are seldom made.                    
+        """C-PCM is normally a better choice than IEF-PCM.  The
+        iterative solvers chosen by IEF=-3 or -10 usually reproduce
+        the energy of the explicit solvers IEF=3 or 10 to within
+        1.0d-8 Hartrees, and will be much faster and use less
+        memory for large molecules.  D-PCM should be considered
+        obsolete, and choices 1 and 2 are seldom made.
         """
         if solvent == "gas":
             if "pcm" in self._options:
@@ -379,12 +392,16 @@ class Gamess:
 
     def exec_rungms(self, mol):
         self.gamin = self.write_file(mol)
-        self.gamout = self.tempdir + "/" + self.jobname + ".out"
+        self.gamout = os.path.join(self.tempdir, f"{self.jobname}.out")
         #  exec rungms
         #os.chdir(self.tempdir)
-        cmd = "%s %s> %s  2> /dev/null" % (self.rungms, self.jobname, self.gamout)
+        cmd = "%s %s %s %i > %s" % (self.rungms, self.gamin,
+            self.executable_num, self.num_cores, self.gamout)
+            # NOTE: I don't think error re-direction is necessary,
+            #   but if it is, cross-platform approach uses os.devnull
         logger.info(f"Executeing exec_rungms with command {cmd}")
-        self.completed_gamess = subprocess.run(cmd, shell=True, cwd=self.tempdir)
+        # Run from GAMESS_PATH, lest rungms.gms config file not exist
+        self.completed_gamess = subprocess.run(cmd, shell=True, cwd=self.gamess_path)
         #os.system("%s %s> %s  2> /dev/null" % (self.rungms, self.jobname, self.gamout))
 
         result = self.parse_gamout(self.gamout, mol)
@@ -397,6 +414,7 @@ class Gamess:
         return result
 
     def py_rungms(self, mol):
+        # NOTE: Currently incompatible with Windows version, use run(.., use_rungms=True)
         self.gamin = os.path.join(self.tempdir, self.jobname + ".F05")
         with open(self.gamin, "w") as f:
             f.write(self.input(mol))
@@ -503,7 +521,7 @@ class Gamess:
 
         result = self.parse_gamout(self.gamout, mol)
 
-        
+
         if not self.debug:
             os.unlink(self.gamin)
             os.unlink(self.gamout)
