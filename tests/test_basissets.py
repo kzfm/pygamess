@@ -9,8 +9,8 @@ def test_ethane_sto3g():
     g = pygamess.Gamess()
     g.debug = True
     try:
-        newmol = g.run(mol)
+        r = g.run(mol)
     except GamessError:
         print(GamessError.value)
 
-    assert pytest.approx(-78.30530748, 0.000000005) == newmol.GetDoubleProp("total_energy")
+    assert pytest.approx(-78.30530748, 0.000000005) == r.mol.GetDoubleProp("total_energy")

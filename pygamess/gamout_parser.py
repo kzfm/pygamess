@@ -1,4 +1,5 @@
 import re
+import os
 
 class GamessOut:
     def __init__(self):
@@ -15,16 +16,20 @@ def gparse(gamout, parse_type="default"):
     r = GamessOut()
     out_str = open(gamout, "r").read()
 
-    # # exited gracefully?
-    # if not out_str.endswith("gracefully.\n"):
-    #     r.error_message = out_str[-1000:]
-    #     return r
-    # else:
-    #     r.success = True
+    if os.name == "nt":
+        r.success = True
+    elif os.name == "posix":
+        # exited gracefully?
+        if not out_str.endswith("gracefully.\n"):
+            r.error_message = out_str[-1000:]
+            return r
+        else:
+            r.success = True
+    else:
+        r.success = True
 
     # NOTE: Above check appears to be version-dependent.
     #   Temporary fix: assume it worked until proven otherwise:
-    r.success = True
 
     if parse_type == "default":
         r = default_parse(out_str, r)
