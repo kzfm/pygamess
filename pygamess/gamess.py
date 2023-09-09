@@ -177,12 +177,16 @@ class Gamess:
         for i, cds in enumerate(result.coordinates):
             conf.SetAtomPosition(i, cds)
 
-        for i, c in enumerate(zip(result.mulliken_charges, result.lowdin_charges)):
+        for i, c in enumerate(zip(result.mulliken_charges, result.lowdin_charges, result.mulliken_populations, result.lowdin_populations)):
             atom = nmol.GetAtomWithIdx(i)
             atom.SetDoubleProp("mulliken_charge", c[0])
             atom.SetDoubleProp("lowdin_charge", c[1])
+            atom.SetDoubleProp("mulliken_population", c[2])
+            atom.SetDoubleProp("lowdin_population", c[3])
         Chem.CreateAtomDoublePropertyList(nmol, "mulliken_charge")
         Chem.CreateAtomDoublePropertyList(nmol, "lowdin_charge")
+        Chem.CreateAtomDoublePropertyList(nmol, "mulliken_population")
+        Chem.CreateAtomDoublePropertyList(nmol, "lowdin_population")
 
         result.mol = nmol
         return result

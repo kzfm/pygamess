@@ -9,10 +9,11 @@ pygamess/__main__.py
 pygamess/email.py
 pygamess/gamess.py
 pygamess/gamout_parser.py
-pygamess/pygamess_utils.py
 pygamess/utils.py
 pygamess.egg-info/PKG-INFO
 pygamess.egg-info/SOURCES.txt
 pygamess.egg-info/dependency_links.txt
 pygamess.egg-info/not-zip-safe
 pygamess.egg-info/top_level.txt
+tests/test_basissets.py
+tests/test_gamess.py

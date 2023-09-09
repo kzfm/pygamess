@@ -99,12 +99,16 @@ def default_parse(out_str, r):
 
     # MULLIKEN and LOWDIN charge
     for m in pop_re.finditer(out_str):
+        r.mulliken_populations = []
+        r.lowdin_populations = []
         r.mulliken_charges = []
         r.lowdin_charges = []
         for l in m.group(1).split("\n"):
             ls = l.split()
             if len(ls) == 6:
+                r.mulliken_populations.append(float(ls[2]))
                 r.mulliken_charges.append(float(ls[3]))
+                r.lowdin_populations.append(float(ls[4]))
                 r.lowdin_charges.append(float(ls[5]))
 
     # Dipole morment

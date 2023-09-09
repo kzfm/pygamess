@@ -439,6 +439,10 @@ set logger level:
 
 ## History
 
+### 0.6.8 (2023-09-10)
+
+- Add Mulliken/Lowdin population
+
 ### 0.6.7 (2021-09-12)
 
 - Bug fix (options)

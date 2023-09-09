@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import sys
 import os
 
-version = '0.6.7'
+version = '0.6.8'
 
 setup(name='pygamess',
       version=version,
@@ -14,6 +14,7 @@ setup(name='pygamess',
         'Topic :: Scientific/Engineering :: Chemistry',
         'Development Status :: 2 - Pre-Alpha',
         'Operating System :: MacOS :: MacOS X',
+        'Operating System :: Microsoft :: Windows :: Windows 10',
         'Operating System :: POSIX',
         'Programming Language :: Python'
         ], 
