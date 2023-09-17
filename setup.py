@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import sys
 import os
 
-version = '0.6.8'
+version = '0.6.9'
 
 setup(name='pygamess',
       version=version,

@@ -35,10 +35,10 @@ def sdf2gamout(sdffile):
         if m.HasProp("ir_spectra") > 0:
             r.ir_spectra = eval(m.GetProp("ir_spectra"))
 
-        r.mulliken_charges = [a.GetProp("mulliken_charge") for a in m.GetAtoms()]
-        r.lowdin_charges = [a.GetProp("lowdin_charge") for a in m.GetAtoms()]
-        r.mulliken_populstions = [a.GetProp("mulliken_population") for a in m.GetAtoms()]
-        r.lowdin_populations = [a.GetProp("lowdin_population") for a in m.GetAtoms()]
+        r.mulliken_charges = [a.GetDoubleProp("mulliken_charge") for a in m.GetAtoms()]
+        r.lowdin_charges = [a.GetDoubleProp("lowdin_charge") for a in m.GetAtoms()]
+        r.mulliken_populations = [a.GetDoubleProp("mulliken_population") for a in m.GetAtoms()]
+        r.lowdin_populations = [a.GetDoubleProp("lowdin_population") for a in m.GetAtoms()]
         r.mol = m
         rs.append(r)
 
