@@ -7,7 +7,7 @@ version = '0.6.9'
 setup(name='pygamess',
       version=version,
       description="GAMESS wrapper for Python",
-      long_description=open("README.md").read(),
+      long_description=open("README.md", encoding="utf8").read(),
       long_description_content_type='text/markdown',
       classifiers=[
         'License :: OSI Approved :: MIT License',
